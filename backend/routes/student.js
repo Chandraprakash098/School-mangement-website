@@ -9,6 +9,11 @@ router.get('/attendance',
   studentController.getAttendance
 );
 
+router.get('/attendance/all', 
+  [auth, roleAuth(['student'])], 
+  studentController.getAllAttendance
+);
+
 router.get('/homework', 
   [auth, roleAuth(['student'])], 
   studentController.getHomework

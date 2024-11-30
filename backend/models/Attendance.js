@@ -20,6 +20,8 @@ const AttendanceSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   }
+},{
+  index: { student: 1, date: 1 },
 });
 
 module.exports = mongoose.model('Attendance', AttendanceSchema);
