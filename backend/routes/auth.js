@@ -110,7 +110,7 @@ router.post('/login', [
       { expiresIn: '1h' },
       (err, token) => {
         if (err) throw err;
-        res.json({ token, role: user.role });
+        res.json({ token,userId: user.id, role: user.role });
       }
     );
   } catch (err) {

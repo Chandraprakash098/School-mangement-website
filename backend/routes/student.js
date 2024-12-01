@@ -4,7 +4,7 @@ const auth = require('../middleware/auth');
 const roleAuth = require('../middleware/roleAuth');
 const studentController = require('../controllers/studentController');
 
-router.get('/attendance', 
+router.get('/attendance/:userId', 
   [auth, roleAuth(['student'])], 
   studentController.getAttendance
 );
