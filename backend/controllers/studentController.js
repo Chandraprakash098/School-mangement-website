@@ -22,9 +22,13 @@ const Transport = require('../models/Transport');
 
 exports.getAttendance = async (req, res) => {
   try {
-    console.log('Authenticated User:', req.user);
+    console.log('Authenticated User Id:', req.user.id);
+    console.log('Attendance Request User ID Type:', typeof req.user.id);
+
     const attendance = await Attendance.find({ student: req.user.id })
       .sort({ date: -1 });
+
+      console.log('Found Attendance:', attendance);
     
     // Calculate attendance percentage
     const totalAttendance = attendance.length;
@@ -43,39 +47,7 @@ exports.getAttendance = async (req, res) => {
   }
 };
 
-// exports.getAttendance = async (req, res) => {
-//   try {
-//     const { date } = req.query;
-    
-//     // Parse the date and create a date range to match MongoDB's date storage
-//     const selectedDate = new Date(date);
-//     const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0));
-//     const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999));
 
-//     const attendance = await Attendance.findOne({
-//       student: req.user.id,
-//       date: {
-//         $gte: startOfDay,
-//         $lte: endOfDay
-//       }
-//     });
-
-//     if (!attendance) {
-//       return res.status(404).json({ message: 'No attendance record found' });
-//     }
-
-//     res.json({
-//       status: 'success',
-//       attendance: {
-//         date: attendance.date,
-//         status: attendance.status
-//       }
-//     });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send('Server Error');
-//   }
-// };
 
 
 exports.getAllAttendance = async (req, res) => {
