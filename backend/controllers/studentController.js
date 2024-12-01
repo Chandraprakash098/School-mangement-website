@@ -9,18 +9,39 @@ const Remarks = require('../models/Remarks');
 const Transport = require('../models/Transport');
 
 // Get Student Attendance
+// exports.getAttendance = async (req, res) => {
+//   try {
+//     const attendance = await Attendance.find({ student: req.user.id })
+//       .sort({ date: -1 });
+//     res.json(attendance);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
 exports.getAttendance = async (req, res) => {
   try {
+    console.log('Authenticated User:', req.user);
     const attendance = await Attendance.find({ student: req.user.id })
       .sort({ date: -1 });
-    res.json(attendance);
+    
+    // Calculate attendance percentage
+    const totalAttendance = attendance.length;
+    const presentDays = attendance.filter(a => a.status === 'present').length;
+    const attendancePercentage = totalAttendance > 0 
+      ? Math.round((presentDays / totalAttendance) * 100) 
+      : 0;
+
+    res.json({
+      attendanceList: attendance,
+      attendancePercentage: attendancePercentage
+    });
   } catch (err) {
-    console.error(err);
+    console.error('Detailed Error:', err);
     res.status(500).send('Server Error');
   }
 };
-
-
 
 // exports.getAttendance = async (req, res) => {
 //   try {
