@@ -102,7 +102,7 @@ router.post('/login', [
         role: user.role
       }
     };
-
+    // userId: user.id
     // Sign token
     jwt.sign(
       payload,
@@ -110,7 +110,7 @@ router.post('/login', [
       { expiresIn: '1h' },
       (err, token) => {
         if (err) throw err;
-        res.json({ token,userId: user.id, role: user.role });
+        res.json({ token, role: user.role });
       }
     );
   } catch (err) {
