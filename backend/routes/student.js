@@ -14,7 +14,7 @@ router.get('/attendance/all',
   studentController.getAllAttendance
 );
 
-router.get('/homework', 
+router.get('/homework/:userId', 
   [auth, roleAuth(['student'])], 
   studentController.getHomework
 );
