@@ -64,11 +64,14 @@ exports.getAllAttendance = async (req, res) => {
 // Get Homework
 exports.getHomework = async (req, res) => {
   try {
-    const homework = await Homework.find()
+    console.log('Authenticated User Id:', req.user.id);
+    console.log('Attendance Request User ID Type:', typeof req.user.id);
+    
+    const homework = await Homework.find({student: req.user.id})
       .sort({ createdAt: -1 });
     res.json(homework);
   } catch (err) {
-    console.error(err);
+    console.error('Detailed Error:', err);
     res.status(500).send('Server Error');
   }
 };
