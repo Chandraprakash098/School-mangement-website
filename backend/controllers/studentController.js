@@ -66,8 +66,8 @@ exports.getHomework = async (req, res) => {
   try {
     console.log('Authenticated User Id:', req.user.id);
     console.log('Attendance Request User ID Type:', typeof req.user.id);
-    
-    const homework = await Homework.find({student: req.user.id})
+
+    const homework = await Homework.find()
       .sort({ createdAt: -1 });
     res.json(homework);
   } catch (err) {
