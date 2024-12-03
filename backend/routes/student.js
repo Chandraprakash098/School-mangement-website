@@ -39,4 +39,20 @@ router.get('/study-material',
   studentController.getStudyMaterial
 );
 
+// In student routes
+router.get('/online-tests', 
+  [auth, roleAuth(['student'])], 
+  studentController.getAvailableOnlineTests
+);
+
+router.post('/submit-online-test', 
+  [auth, roleAuth(['student'])], 
+  studentController.submitOnlineTest
+);
+
+router.get('/test-results', 
+  [auth, roleAuth(['student'])], 
+  studentController.getStudentTestResults
+);
+
 module.exports = router;

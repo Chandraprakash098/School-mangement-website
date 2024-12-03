@@ -31,12 +31,17 @@ const OnlineTestSchema = new mongoose.Schema({
       },
       answers: [{
         questionId: mongoose.Schema.Types.ObjectId,
-        selectedOption: String
+        selectedOption: String,
+        isCorrect: Boolean
       }],
       score: Number,
       evaluated: {
         type: Boolean,
         default: false
+      },
+      feedback: {
+        type: String,
+        default: ''
       }
     }]
   }, { timestamps: true });

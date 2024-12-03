@@ -63,7 +63,7 @@ const mongoose = require('mongoose');
 exports.createRemarks = async (req, res) => {
   try {
     const { 
-      studentId, 
+      student: studentId, 
       subject, 
       academicPerformance, 
       behaviorRemark, 
@@ -72,7 +72,7 @@ exports.createRemarks = async (req, res) => {
     } = req.body;
 
     // Validate ObjectId format
-    if (!mongoose.isValidObjectId(studentId)) {
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
       return res.status(400).json({ message: 'Invalid studentId format' });
     }
 
@@ -125,22 +125,101 @@ exports.createOnlineTest = async (req, res) => {
 };
 
 // Evaluate Online Test
+// exports.evaluateOnlineTest = async (req, res) => {
+//   try {
+//     const { testId, studentId, responses } = req.body;
+
+//     const test = await OnlineTest.findById(testId);
+//     if (!test) {
+//       return res.status(404).json({ message: 'Test not found' });
+//     }
+
+//     let score = 0;
+//     const evaluatedResponses = responses.map(response => {
+//       const question = test.questions.find(q => q._id.toString() === response.questionId);
+//       const correctOption = question.options.find(opt => opt.isCorrect);
+      
+//       const isCorrect = response.selectedOption === correctOption.text;
+//       if (isCorrect) score++;
+
+//       return {
+//         questionId: response.questionId,
+//         selectedOption: response.selectedOption,
+//         isCorrect
+//       };
+//     });
+
+//     // Update test with student's response
+//     const existingResponseIndex = test.studentResponses.findIndex(
+//       resp => resp.student.toString() === studentId
+//     );
+
+//     if (existingResponseIndex > -1) {
+//       test.studentResponses[existingResponseIndex] = {
+//         student: studentId,
+//         answers: evaluatedResponses,
+//         score,
+//         evaluated: true
+//       };
+//     } else {
+//       test.studentResponses.push({
+//         student: studentId,
+//         answers: evaluatedResponses,
+//         score,
+//         evaluated: true
+//       });
+//     }
+
+//     await test.save();
+//     res.json({ score, responses: evaluatedResponses });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
+
+
+// In teacherController.js
+exports.getUnevaluatedTests = async (req, res) => {
+  try {
+    const unevaluatedTests = await OnlineTest.find({
+      'studentResponses.evaluated': false
+    }).populate('studentResponses.student', 'name');
+
+    res.json(unevaluatedTests);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Modify existing evaluateOnlineTest method to be more robust
 exports.evaluateOnlineTest = async (req, res) => {
   try {
-    const { testId, studentId, responses } = req.body;
+    const { testId, studentId, manualScore, feedback } = req.body;
 
     const test = await OnlineTest.findById(testId);
     if (!test) {
       return res.status(404).json({ message: 'Test not found' });
     }
 
-    let score = 0;
-    const evaluatedResponses = responses.map(response => {
+    const studentResponseIndex = test.studentResponses.findIndex(
+      resp => resp.student.toString() === studentId
+    );
+
+    if (studentResponseIndex === -1) {
+      return res.status(404).json({ message: 'Student response not found' });
+    }
+
+    // Automatic scoring logic
+    let automaticScore = 0;
+    const evaluatedResponses = test.studentResponses[studentResponseIndex].answers.map(response => {
       const question = test.questions.find(q => q._id.toString() === response.questionId);
       const correctOption = question.options.find(opt => opt.isCorrect);
       
       const isCorrect = response.selectedOption === correctOption.text;
-      if (isCorrect) score++;
+      if (isCorrect) automaticScore++;
 
       return {
         questionId: response.questionId,
@@ -149,29 +228,21 @@ exports.evaluateOnlineTest = async (req, res) => {
       };
     });
 
-    // Update test with student's response
-    const existingResponseIndex = test.studentResponses.findIndex(
-      resp => resp.student.toString() === studentId
-    );
+    // Use manual score if provided, otherwise use automatic score
+    const finalScore = manualScore !== undefined ? manualScore : automaticScore;
 
-    if (existingResponseIndex > -1) {
-      test.studentResponses[existingResponseIndex] = {
-        student: studentId,
-        answers: evaluatedResponses,
-        score,
-        evaluated: true
-      };
-    } else {
-      test.studentResponses.push({
-        student: studentId,
-        answers: evaluatedResponses,
-        score,
-        evaluated: true
-      });
-    }
+    // Update student response
+    test.studentResponses[studentResponseIndex].score = finalScore;
+    test.studentResponses[studentResponseIndex].evaluated = true;
+    test.studentResponses[studentResponseIndex].feedback = feedback;
 
     await test.save();
-    res.json({ score, responses: evaluatedResponses });
+
+    res.json({ 
+      message: 'Test evaluated successfully', 
+      score: finalScore,
+      feedback
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send('Server Error');

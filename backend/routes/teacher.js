@@ -29,4 +29,10 @@ router.post('/evaluate-test',
   teacherController.evaluateOnlineTest
 );
 
+// In teacher routes
+router.get('/unevaluated-tests', 
+  [auth, roleAuth(['teacher'])], 
+  teacherController.getUnevaluatedTests
+);
+
 module.exports = router;
