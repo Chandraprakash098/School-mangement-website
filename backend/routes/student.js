@@ -40,7 +40,7 @@ router.get('/study-material',
 );
 
 // In student routes
-router.get('/online-tests', 
+router.get('/online-tests/:userId', 
   [auth, roleAuth(['student'])], 
   studentController.getAvailableOnlineTests
 );
