@@ -145,52 +145,65 @@ exports.evaluateOnlineTest = async (req, res) => {
   try {
     const { testId, studentId, manualScore, feedback } = req.body;
 
+    // Find the test by ID
     const test = await OnlineTest.findById(testId);
     if (!test) {
       return res.status(404).json({ message: 'Test not found' });
     }
 
+    // Find the student's response within the test
     const studentResponseIndex = test.studentResponses.findIndex(
-      resp => resp.student.toString() === studentId
+      (resp) => resp.student.toString() === studentId
     );
-
     if (studentResponseIndex === -1) {
       return res.status(404).json({ message: 'Student response not found' });
     }
 
     // Automatic scoring logic
     let automaticScore = 0;
-    const evaluatedResponses = test.studentResponses[studentResponseIndex].answers.map(response => {
-      const question = test.questions.find(q => q._id.toString() === response.questionId);
-      const correctOption = question.options.find(opt => opt.isCorrect);
-      
+    const evaluatedResponses = test.studentResponses[studentResponseIndex].answers.map((response) => {
+      const question = test.questions.find(
+        (q) => q._id.toString() === response.questionId.toString()
+      );
+
+      if (!question) {
+        throw new Error(`Question with ID ${response.questionId} not found`);
+      }
+
+      const correctOption = question.options.find((opt) => opt.isCorrect);
+      if (!correctOption) {
+        throw new Error(`No correct option found for question ID ${question._id}`);
+      }
+
       const isCorrect = response.selectedOption === correctOption.text;
       if (isCorrect) automaticScore++;
 
       return {
         questionId: response.questionId,
         selectedOption: response.selectedOption,
-        isCorrect
+        isCorrect,
       };
     });
 
     // Use manual score if provided, otherwise use automatic score
     const finalScore = manualScore !== undefined ? manualScore : automaticScore;
 
-    // Update student response
-    test.studentResponses[studentResponseIndex].score = finalScore;
-    test.studentResponses[studentResponseIndex].evaluated = true;
-    test.studentResponses[studentResponseIndex].feedback = feedback;
+    // Update the student response
+    const studentResponse = test.studentResponses[studentResponseIndex];
+    studentResponse.score = finalScore;
+    studentResponse.evaluated = true;
+    studentResponse.feedback = feedback;
 
+    // Save the updated test
     await test.save();
 
-    res.json({ 
-      message: 'Test evaluated successfully', 
+    res.json({
+      message: 'Test evaluated successfully',
       score: finalScore,
-      feedback
+      feedback,
     });
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     res.status(500).send('Server Error');
   }
 };
