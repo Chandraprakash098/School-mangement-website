@@ -223,6 +223,60 @@ exports.getOnlineTestResults = async (req, res) => {
 
 
 // In studentController.js
+// exports.submitOnlineTest = async (req, res) => {
+//   try {
+//     const { testId, responses } = req.body;
+
+//     // Find the online test
+//     const test = await OnlineTest.findById(testId);
+//     if (!test) {
+//       return res.status(404).json({ message: 'Test not found' });
+//     }
+
+//     // Prepare student's responses
+//     const studentResponses = responses.map(response => ({
+//       questionId: response.questionId,
+//       selectedOption: response.selectedOption
+//     }));
+
+//     // Check if student has already submitted responses
+//     const existingResponseIndex = test.studentResponses.findIndex(
+//       resp => resp.student.toString() === req.user.id
+//     );
+   
+   
+
+//     if (existingResponseIndex > -1) {
+//       // Update existing response
+//       test.studentResponses[existingResponseIndex] = {
+//         student: req.user.id,
+//         answers: studentResponses,
+//         score: 0,
+//         evaluated: false
+//       };
+//     } else {
+//       // Add new response
+//       test.studentResponses.push({
+//         student: req.user.id,
+//         answers: studentResponses,
+//         score: 0,
+//         evaluated: false
+//       });
+//     }
+
+//     await test.save();
+
+//     res.json({ 
+//       message: 'Test submitted successfully', 
+//       testId: test._id 
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
+
 exports.submitOnlineTest = async (req, res) => {
   try {
     const { testId, responses } = req.body;
@@ -244,21 +298,38 @@ exports.submitOnlineTest = async (req, res) => {
       resp => resp.student.toString() === req.user.id
     );
 
+    // Check test duration
+    const currentTime = new Date();
     if (existingResponseIndex > -1) {
+      const existingResponse = test.studentResponses[existingResponseIndex];
+      
+      // Check if test is already submitted
+      if (existingResponse.submitted) {
+        return res.status(400).json({ message: 'Test already submitted' });
+      }
+
+      // Check if time has exceeded
+      const testStartTime = existingResponse.startTime;
+      const timeDiff = (currentTime - testStartTime) / (1000 * 60); // minutes
+      
+      if (timeDiff > test.duration) {
+        existingResponse.submitted = true;
+        await test.save();
+        return res.status(400).json({ message: 'Test time exceeded' });
+      }
+
       // Update existing response
-      test.studentResponses[existingResponseIndex] = {
-        student: req.user.id,
-        answers: studentResponses,
-        score: 0,
-        evaluated: false
-      };
+      existingResponse.answers = studentResponses;
+      existingResponse.submitted = true;
     } else {
       // Add new response
       test.studentResponses.push({
         student: req.user.id,
         answers: studentResponses,
         score: 0,
-        evaluated: false
+        evaluated: false,
+        startTime: currentTime,
+        submitted: true
       });
     }
 
@@ -275,13 +346,39 @@ exports.submitOnlineTest = async (req, res) => {
 };
 
 // Add a method to get available online tests for students
+// exports.getAvailableOnlineTests = async (req, res) => {
+//   try {
+//     const tests = await OnlineTest.find()
+//       .select('-questions.options.isCorrect') // Exclude correct answers
+//       .sort({ createdAt: -1 });
+    
+//     res.json(tests);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
 exports.getAvailableOnlineTests = async (req, res) => {
   try {
     const tests = await OnlineTest.find()
       .select('-questions.options.isCorrect') // Exclude correct answers
       .sort({ createdAt: -1 });
     
-    res.json(tests);
+    // Check if student has already started the test
+    const testsWithStartStatus = tests.map(test => {
+      const studentResponse = test.studentResponses.find(
+        resp => resp.student.toString() === req.user.id
+      );
+
+      return {
+        ...test.toObject(),
+        hasStarted: !!studentResponse,
+        isSubmitted: studentResponse?.submitted || false
+      };
+    });
+    
+    res.json(testsWithStartStatus);
   } catch (err) {
     console.error(err);
     res.status(500).send('Server Error');

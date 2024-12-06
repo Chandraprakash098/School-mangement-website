@@ -102,7 +102,7 @@ exports.createRemarks = async (req, res) => {
 // Create Online Test
 exports.createOnlineTest = async (req, res) => {
   try {
-    const { title, subject, questions } = req.body;
+    const { title, subject, questions,duration } = req.body;
 
     if (!questions || questions.length !== 15) {
       return res.status(400).json({ message: 'Test must have exactly 15 questions' });
@@ -112,7 +112,8 @@ exports.createOnlineTest = async (req, res) => {
       title,
       subject,
       questions,
-      teacher: req.user.id
+      teacher: req.user.id,
+      duration: duration || 15
     });
 
     await onlineTest.save();
@@ -122,60 +123,6 @@ exports.createOnlineTest = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
-
-// Evaluate Online Test
-// exports.evaluateOnlineTest = async (req, res) => {
-//   try {
-//     const { testId, studentId, responses } = req.body;
-
-//     const test = await OnlineTest.findById(testId);
-//     if (!test) {
-//       return res.status(404).json({ message: 'Test not found' });
-//     }
-
-//     let score = 0;
-//     const evaluatedResponses = responses.map(response => {
-//       const question = test.questions.find(q => q._id.toString() === response.questionId);
-//       const correctOption = question.options.find(opt => opt.isCorrect);
-      
-//       const isCorrect = response.selectedOption === correctOption.text;
-//       if (isCorrect) score++;
-
-//       return {
-//         questionId: response.questionId,
-//         selectedOption: response.selectedOption,
-//         isCorrect
-//       };
-//     });
-
-//     // Update test with student's response
-//     const existingResponseIndex = test.studentResponses.findIndex(
-//       resp => resp.student.toString() === studentId
-//     );
-
-//     if (existingResponseIndex > -1) {
-//       test.studentResponses[existingResponseIndex] = {
-//         student: studentId,
-//         answers: evaluatedResponses,
-//         score,
-//         evaluated: true
-//       };
-//     } else {
-//       test.studentResponses.push({
-//         student: studentId,
-//         answers: evaluatedResponses,
-//         score,
-//         evaluated: true
-//       });
-//     }
-
-//     await test.save();
-//     res.json({ score, responses: evaluatedResponses });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send('Server Error');
-//   }
-// };
 
 
 

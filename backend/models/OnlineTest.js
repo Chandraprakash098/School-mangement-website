@@ -1,4 +1,4 @@
-const mongoose= require('mongoose')
+const mongoose = require('mongoose');
 
 const OnlineTestSchema = new mongoose.Schema({
     title: {
@@ -24,6 +24,11 @@ const OnlineTestSchema = new mongoose.Schema({
       ref: 'User',
       required: true
     },
+    duration: {
+      type: Number,
+      required: true,
+      default: 15 // default 15 minutes
+    },
     studentResponses: [{
       student: {
         type: mongoose.Schema.Types.ObjectId,
@@ -42,9 +47,15 @@ const OnlineTestSchema = new mongoose.Schema({
       feedback: {
         type: String,
         default: ''
+      },
+      startTime: {
+        type: Date
+      },
+      submitted: {
+        type: Boolean,
+        default: false
       }
     }]
   }, { timestamps: true });
   
-  module.exports = mongoose.model('OnlineTest', OnlineTestSchema)
-  
+module.exports = mongoose.model('OnlineTest', OnlineTestSchema);
