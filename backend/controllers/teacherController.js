@@ -155,44 +155,50 @@ exports.evaluateOnlineTest = async (req, res) => {
     const studentResponseIndex = test.studentResponses.findIndex(
       (resp) => resp.student.toString() === studentId
     );
+    
     if (studentResponseIndex === -1) {
       return res.status(404).json({ message: 'Student response not found' });
     }
 
-    // Automatic scoring logic
-    let automaticScore = 0;
-    const evaluatedResponses = test.studentResponses[studentResponseIndex].answers.map((response) => {
-      const question = test.questions.find(
-        (q) => q._id.toString() === response.questionId.toString()
-      );
+    // Automatic scoring logic (only if manual score is not provided)
+    let finalScore = manualScore;
+    
+    if (manualScore === undefined) {
+      let automaticScore = 0;
+      const evaluatedResponses = test.studentResponses[studentResponseIndex].answers.map((response) => {
+        const question = test.questions.find(
+          (q) => q._id.toString() === response.questionId.toString()
+        );
 
-      if (!question) {
-        throw new Error(`Question with ID ${response.questionId} not found`);
-      }
+        if (!question) {
+          console.warn(`Question with ID ${response.questionId} not found`);
+          return response;
+        }
 
-      const correctOption = question.options.find((opt) => opt.isCorrect);
-      if (!correctOption) {
-        throw new Error(`No correct option found for question ID ${question._id}`);
-      }
+        const correctOption = question.options.find((opt) => opt.isCorrect);
+        if (!correctOption) {
+          console.warn(`No correct option found for question ID ${question._id}`);
+          return response;
+        }
 
-      const isCorrect = response.selectedOption === correctOption.text;
-      if (isCorrect) automaticScore++;
+        const isCorrect = response.selectedOption === correctOption.text;
+        if (isCorrect) automaticScore++;
 
-      return {
-        questionId: response.questionId,
-        selectedOption: response.selectedOption,
-        isCorrect,
-      };
-    });
+        return {
+          questionId: response.questionId,
+          selectedOption: response.selectedOption,
+          isCorrect,
+        };
+      });
 
-    // Use manual score if provided, otherwise use automatic score
-    const finalScore = manualScore !== undefined ? manualScore : automaticScore;
+      finalScore = automaticScore;
+    }
 
     // Update the student response
     const studentResponse = test.studentResponses[studentResponseIndex];
     studentResponse.score = finalScore;
     studentResponse.evaluated = true;
-    studentResponse.feedback = feedback;
+    studentResponse.feedback = feedback || '';
 
     // Save the updated test
     await test.save();
@@ -200,7 +206,7 @@ exports.evaluateOnlineTest = async (req, res) => {
     res.json({
       message: 'Test evaluated successfully',
       score: finalScore,
-      feedback,
+      feedback: studentResponse.feedback,
     });
   } catch (err) {
     console.error(err.message);
