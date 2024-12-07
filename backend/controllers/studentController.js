@@ -222,59 +222,6 @@ exports.getOnlineTestResults = async (req, res) => {
 
 
 
-// In studentController.js
-// exports.submitOnlineTest = async (req, res) => {
-//   try {
-//     const { testId, responses } = req.body;
-
-//     // Find the online test
-//     const test = await OnlineTest.findById(testId);
-//     if (!test) {
-//       return res.status(404).json({ message: 'Test not found' });
-//     }
-
-//     // Prepare student's responses
-//     const studentResponses = responses.map(response => ({
-//       questionId: response.questionId,
-//       selectedOption: response.selectedOption
-//     }));
-
-//     // Check if student has already submitted responses
-//     const existingResponseIndex = test.studentResponses.findIndex(
-//       resp => resp.student.toString() === req.user.id
-//     );
-   
-   
-
-//     if (existingResponseIndex > -1) {
-//       // Update existing response
-//       test.studentResponses[existingResponseIndex] = {
-//         student: req.user.id,
-//         answers: studentResponses,
-//         score: 0,
-//         evaluated: false
-//       };
-//     } else {
-//       // Add new response
-//       test.studentResponses.push({
-//         student: req.user.id,
-//         answers: studentResponses,
-//         score: 0,
-//         evaluated: false
-//       });
-//     }
-
-//     await test.save();
-
-//     res.json({ 
-//       message: 'Test submitted successfully', 
-//       testId: test._id 
-//     });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send('Server Error');
-//   }
-// };
 
 
 exports.submitOnlineTest = async (req, res) => {
@@ -345,19 +292,6 @@ exports.submitOnlineTest = async (req, res) => {
   }
 };
 
-// Add a method to get available online tests for students
-// exports.getAvailableOnlineTests = async (req, res) => {
-//   try {
-//     const tests = await OnlineTest.find()
-//       .select('-questions.options.isCorrect') // Exclude correct answers
-//       .sort({ createdAt: -1 });
-    
-//     res.json(tests);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send('Server Error');
-//   }
-// };
 
 exports.getAvailableOnlineTests = async (req, res) => {
   try {

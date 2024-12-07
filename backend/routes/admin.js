@@ -12,13 +12,13 @@ router.post('/library/add-book',
 
 // Syllabus Routes
 router.post('/syllabus/add', 
-  [auth, roleAuth(['admin'])], 
+  [auth, roleAuth(['admin','teacher'])], 
   adminController.addSyllabus
 );
 
 // Study Material Routes
 router.post('/study-material/add', 
-  [auth, roleAuth(['admin'])], 
+  [auth, roleAuth(['admin','teacher'])], 
   adminController.addStudyMaterial
 );
 
