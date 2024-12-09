@@ -381,8 +381,8 @@ exports.getTransportDetails = async (req, res) => {
       endLocation: route.endLocation,
       departureTime: route.departureTime,
       arrivalTime: route.arrivalTime,
-      driverName: route.driver.name,  // directly access name
-      driverContact: route.driver.contact,  // directly access contact
+      driverName: route.driver?.name || "Unknown Driver",  // Use optional chaining
+      driverContact: route.driver?.contact || "N/A",  // Use optional chaining
       capacity: route.capacity,
       currentPassengers: route.currentPassengers
     }));

@@ -2,20 +2,69 @@
 const Transport = require('../models/Transport');
 
 // Create Bus Route
+// exports.createBusRoute = async (req, res) => {
+//   try {
+//     const { 
+//       busNumber, 
+//       routeNumber, 
+//       startLocation, 
+//       endLocation, 
+//       departureTime, 
+//       arrivalTime, 
+//       driverName,    // Explicitly get driver name
+//       driverContact,
+//       // stops,
+//       // driver,
+//       capacity
+//     } = req.body;
+
+//     // Check if bus number already exists
+//     const existingRoute = await Transport.findOne({ busNumber });
+//     if (existingRoute) {
+//       return res.status(400).json({ message: 'Bus route already exists' });
+//     }
+
+//     const busRoute = new Transport({
+//       busNumber,
+//       routeNumber,
+//       startLocation,
+//       endLocation,
+//       departureTime,
+//       arrivalTime,
+//       // driver: {
+//       //   name: driverName,
+//       //   contact: driverContact
+//       // },
+//       // stops,
+//       // driver,
+//       driverName,    // Explicitly get driver name
+//       driverContact,
+//       capacity,
+//       currentPassengers: 0
+//     });
+
+//     await busRoute.save();
+//     res.status(201).json(busRoute);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
+
 exports.createBusRoute = async (req, res) => {
   try {
-    const { 
-      busNumber, 
-      routeNumber, 
-      startLocation, 
-      endLocation, 
-      departureTime, 
-      arrivalTime, 
-      driverName,    // Explicitly get driver name
-      driverContact,
-      // stops,
-      // driver,
-      capacity
+    const {
+      busNumber,
+      routeNumber,
+      startLocation,
+      endLocation,
+      departureTime,
+      arrivalTime,
+      driverName,    // Input for driver's name
+      driverContact, // Input for driver's contact
+      capacity,
+      currentPassengers
     } = req.body;
 
     // Check if bus number already exists
@@ -31,16 +80,12 @@ exports.createBusRoute = async (req, res) => {
       endLocation,
       departureTime,
       arrivalTime,
-      // driver: {
-      //   name: driverName,
-      //   contact: driverContact
-      // },
-      // stops,
-      // driver,
-      driverName,    // Explicitly get driver name
-      driverContact,
+      driver: {
+        name: driverName,       // Assign driver name
+        contact: driverContact  // Assign driver contact
+      },
       capacity,
-      currentPassengers: 0
+      currentPassengers
     });
 
     await busRoute.save();
