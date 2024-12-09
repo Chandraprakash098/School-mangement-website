@@ -11,8 +11,10 @@ exports.createBusRoute = async (req, res) => {
       endLocation, 
       departureTime, 
       arrivalTime, 
-      stops,
-      driver,
+      driverName,    // Explicitly get driver name
+      driverContact,
+      // stops,
+      // driver,
       capacity
     } = req.body;
 
@@ -29,8 +31,12 @@ exports.createBusRoute = async (req, res) => {
       endLocation,
       departureTime,
       arrivalTime,
-      stops,
-      driver,
+      driver: {
+        name: driverName,
+        contact: driverContact
+      },
+      // stops,
+      // driver,
       capacity,
       currentPassengers: 0
     });
