@@ -371,22 +371,22 @@ exports.getStudentTestResults = async (req, res) => {
 //   }
 // };
 
-
 exports.getTransportDetails = async (req, res) => { 
   try { 
-    const busRoutes = await Transport.find().lean().map(route => ({ 
+    const busRoutes = await Transport.find();
+    const mappedRoutes = busRoutes.map(route => ({ 
       busNumber: route.busNumber,
       routeNumber: route.routeNumber,
       startLocation: route.startLocation,
       endLocation: route.endLocation,
       departureTime: route.departureTime,
       arrivalTime: route.arrivalTime,
-      driverName: route.driver?.name || null,  // Use optional chaining
-      driverContact: route.driver?.contact || null,
+      driverName: route.driver.name,  // directly access name
+      driverContact: route.driver.contact,  // directly access contact
       capacity: route.capacity,
       currentPassengers: route.currentPassengers
     }));
-    res.json(busRoutes); 
+    res.json(mappedRoutes); 
   } catch (err) { 
     console.error(err); 
     res.status(500).send('Server Error'); 
