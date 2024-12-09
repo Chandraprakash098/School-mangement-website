@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const roleAuth = require('../middleware/roleAuth');
 const studentController = require('../controllers/studentController');
+const transportController = require('../controllers/transportController')
 
 router.get('/attendance/:userId', 
   [auth, roleAuth(['student'])], 
@@ -53,6 +54,12 @@ router.post('/submit-online-test',
 router.get('/test-results', 
   [auth, roleAuth(['student'])], 
   studentController.getStudentTestResults
+);
+
+// In studentRoutes.js, add:
+router.get('/transport-routes', 
+  [auth, roleAuth(['student'])], 
+  transportController.getAllBusRoutes
 );
 
 module.exports = router;

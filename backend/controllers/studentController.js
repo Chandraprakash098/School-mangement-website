@@ -339,3 +339,20 @@ exports.getStudentTestResults = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+
+
+
+
+exports.getTransportDetails = async (req, res) => {
+  try {
+    // Fetch available bus routes
+    const busRoutes = await Transport.find({
+      // You can add additional filtering if needed
+    }).select('busNumber routeNumber startLocation endLocation departureTime arrivalTime capacity currentPassengers');
+
+    res.json(busRoutes);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+};
