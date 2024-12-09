@@ -371,21 +371,56 @@ exports.getStudentTestResults = async (req, res) => {
 //   }
 // };
 
+// exports.getTransportDetails = async (req, res) => { 
+//   try { 
+//     const busRoutes = await Transport.find();
+//     const mappedRoutes = busRoutes.map(route => ({ 
+//       busNumber: route.busNumber,
+//       routeNumber: route.routeNumber,
+//       startLocation: route.startLocation,
+//       endLocation: route.endLocation,
+//       departureTime: route.departureTime,
+//       arrivalTime: route.arrivalTime,
+//       driverName: route.driver?.name || "Unknown Driver",  // Use optional chaining
+//       driverContact: route.driver?.contact || "N/A",  // Use optional chaining
+//       capacity: route.capacity,
+//       currentPassengers: route.currentPassengers
+//     }));
+//     res.json(mappedRoutes); 
+//   } catch (err) { 
+//     console.error(err); 
+//     res.status(500).send('Server Error'); 
+//   } 
+// };
+
+
 exports.getTransportDetails = async (req, res) => { 
   try { 
     const busRoutes = await Transport.find();
-    const mappedRoutes = busRoutes.map(route => ({ 
-      busNumber: route.busNumber,
-      routeNumber: route.routeNumber,
-      startLocation: route.startLocation,
-      endLocation: route.endLocation,
-      departureTime: route.departureTime,
-      arrivalTime: route.arrivalTime,
-      driverName: route.driver?.name || "Unknown Driver",  // Use optional chaining
-      driverContact: route.driver?.contact || "N/A",  // Use optional chaining
-      capacity: route.capacity,
-      currentPassengers: route.currentPassengers
-    }));
+    
+    // Add detailed logging
+    console.log("Raw Bus Routes:", busRoutes);
+
+    const mappedRoutes = busRoutes.map(route => {
+      console.log("Individual Route:", route);
+      console.log("Driver Object:", route.driver);
+      
+      return { 
+        busNumber: route.busNumber,
+        routeNumber: route.routeNumber,
+        startLocation: route.startLocation,
+        endLocation: route.endLocation,
+        departureTime: route.departureTime,
+        arrivalTime: route.arrivalTime,
+        driverName: route.driver && route.driver.name ? route.driver.name : "Unknown Driver",
+        driverContact: route.driver && route.driver.contact ? route.driver.contact : "N/A",
+        capacity: route.capacity,
+        currentPassengers: route.currentPassengers
+      };
+    });
+
+    console.log("Mapped Routes:", mappedRoutes);
+    
     res.json(mappedRoutes); 
   } catch (err) { 
     console.error(err); 

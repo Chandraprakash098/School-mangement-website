@@ -31,9 +31,20 @@ const TransportSchema = new mongoose.Schema({
     location: String,
     time: String
   }],
+  // driver: {
+  //   name: String,
+  //   contact: String
+  // },
+
   driver: {
-    name: String,
-    contact: String
+    name: {
+      type: String,
+      default: "Unknown Driver"
+    },
+    contact: {
+      type: String,
+      default: "N/A"
+    }
   },
   capacity: {
     type: Number,
