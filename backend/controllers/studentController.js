@@ -343,16 +343,61 @@ exports.getStudentTestResults = async (req, res) => {
 
 
 
+// exports.getTransportDetails = async (req, res) => {
+//   try {
+//     // Fetch available bus routes
+//     const busRoutes = await Transport.find({
+//       // You can add additional filtering if needed
+//     }).select('busNumber routeNumber startLocation endLocation departureTime arrivalTime capacity currentPassengers');
+
+//     res.json(busRoutes);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
 exports.getTransportDetails = async (req, res) => {
   try {
-    // Fetch available bus routes
-    const busRoutes = await Transport.find({
-      // You can add additional filtering if needed
-    }).select('busNumber routeNumber startLocation endLocation departureTime arrivalTime capacity currentPassengers');
-
+    const busRoutes = await Transport.find().lean().transform(route => ({
+      ...route,
+      driverName: route.driver.name,
+      driverContact: route.driver.contact
+    }));
     res.json(busRoutes);
   } catch (err) {
     console.error(err);
+    res.status(500).send('Server Error');
+  }
+};
+
+// In studentController.js
+const User = require('../models/User');
+
+exports.getStudentProfile = async (req, res) => {
+  try {
+    // Find the user by ID and exclude sensitive information like password
+    const user = await User.findById(req.user.id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // If the user is not a student, deny access
+    if (user.role !== 'student') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Prepare the profile response
+    const profileResponse = {
+      name: user.name,
+      email: user.email,
+      Profession: user.role,
+    };
+
+    res.json(profileResponse);
+  } catch (err) {
+    console.error('Error fetching student profile:', err);
     res.status(500).send('Server Error');
   }
 };

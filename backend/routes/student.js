@@ -62,4 +62,9 @@ router.get('/transport-routes',
   transportController.getAllBusRoutes
 );
 
+router.get('/profile', 
+  [auth, roleAuth(['student'])], 
+  studentController.getStudentProfile
+);
+
 module.exports = router;
