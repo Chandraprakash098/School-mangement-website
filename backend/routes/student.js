@@ -20,10 +20,10 @@ router.get('/homework/:userId',
   studentController.getHomework
 );
 
-router.post('/issue-book', 
-  [auth, roleAuth(['student'])], 
-  studentController.issueBook
-);
+// router.post('/issue-book', 
+//   [auth, roleAuth(['student'])], 
+//   studentController.issueBook
+// );
 
 router.get('/syllabus', 
   [auth, roleAuth(['student'])], 
@@ -65,6 +65,23 @@ router.get('/transport-routes',
 router.get('/profile', 
   [auth, roleAuth(['student'])], 
   studentController.getStudentProfile
+);
+
+
+// Add this to the existing routes
+router.get('/fee-details', 
+  [auth, roleAuth(['student'])], 
+  studentController.getStudentFeeDetails
+);
+
+router.get('/available-books', 
+  [auth, roleAuth(['student'])], 
+  studentController.getAvailableBooks
+);
+
+router.post('/request-book-issue', 
+  [auth, roleAuth(['student'])], 
+  studentController.requestBookIssue
 );
 
 module.exports = router;

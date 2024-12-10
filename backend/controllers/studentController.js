@@ -7,6 +7,8 @@ const Syllabus = require('../models/Syllabus');
 const StudyMaterial = require('../models/StudyMaterial');
 const Remarks = require('../models/Remarks');
 const Transport = require('../models/Transport');
+const Fees = require('../models/Account')
+
 
 // Get Student Attendance
 // exports.getAttendance = async (req, res) => {
@@ -148,16 +150,16 @@ exports.getStudyMaterial = async (req, res) => {
   }
 };
 
-// Get Transport Details
-exports.getTransportDetails = async (req, res) => {
-  try {
-    const transportDetails = await Transport.find({ student: req.user.id });
-    res.json(transportDetails);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server Error');
-  }
-};
+// // Get Transport Details
+// exports.getTransportDetails = async (req, res) => {
+//   try {
+//     const transportDetails = await Transport.find({ student: req.user.id });
+//     res.json(transportDetails);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
 
 // Return Library Book
 exports.returnBook = async (req, res) => {
@@ -455,6 +457,146 @@ exports.getStudentProfile = async (req, res) => {
     res.json(profileResponse);
   } catch (err) {
     console.error('Error fetching student profile:', err);
+    res.status(500).send('Server Error');
+  }
+};
+
+
+
+// Get Student Fee Details
+exports.getStudentFeeDetails = async (req, res) => {
+  try {
+    // Find fee records for the authenticated student
+    const feeRecords = await Fees.find({ 
+      student: req.user.id 
+    }).sort({ createdAt: -1 });
+
+    if (!feeRecords || feeRecords.length === 0) {
+      return res.status(404).json({ message: 'No fee records found' });
+    }
+
+    // Prepare a detailed fee summary
+    const feeSummary = feeRecords.map(record => ({
+      academicYear: record.academicYear,
+      semester: record.semester,
+      feeStructure: record.feeStructure,
+      totalFeeAmount: record.totalFeeAmount,
+      remainingBalance: record.remainingBalance,
+      paymentStatus: record.paymentStatus,
+      dueDate: record.dueDate,
+      discounts: record.discounts,
+      paymentDetails: record.paymentDetails
+    }));
+
+    res.json(feeSummary);
+  } catch (err) {
+    console.error('Error fetching student fee details:', err);
+    res.status(500).send('Server Error');
+  }
+};
+
+
+
+exports.getAvailableBooks = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const books = await Library.find({
+      class: user.class,
+      availableCopies: { $gt: 0 }
+    });
+
+    // Add issue status for each book
+    const booksWithStatus = books.map(book => {
+      const existingIssue = book.issuedBooks.find(
+        issue => issue.student.toString() === req.user.id
+      );
+
+      return {
+        ...book.toObject(),
+        issueStatus: existingIssue ? existingIssue.status : null
+      };
+    });
+
+    res.json(booksWithStatus);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+};
+
+
+// exports.getAvailableBooks = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user.id);
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+
+//     // Convert student's class to match library's class format
+//     const studentClass = user.class === '10th' ? 'Class 10' : user.class;
+
+//     const books = await Library.find({
+//       class: studentClass,  // Use the converted class name
+//       availableCopies: { $gt: 0 }
+//     });
+
+//     // Add logging to debug
+//     console.log('User Class:', user.class);
+//     console.log('Converted Class:', studentClass);
+//     console.log('Found Books:', books);
+
+//     // Add issue status for each book
+//     const booksWithStatus = books.map(book => {
+//       const existingIssue = book.issuedBooks.find(
+//         issue => issue.student.toString() === req.user.id
+//       );
+
+//       return {
+//         ...book.toObject(),
+//         issueStatus: existingIssue ? existingIssue.status : null
+//       };
+//     });
+
+//     res.json(booksWithStatus);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
+exports.requestBookIssue = async (req, res) => {
+  try {
+    const { bookId } = req.body;
+    const book = await Library.findById(bookId);
+
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+
+    // Check if user has already requested or issued this book
+    const existingIssue = book.issuedBooks.find(
+      issue => issue.student.toString() === req.user.id
+    );
+
+    if (existingIssue) {
+      return res.status(400).json({ message: 'Book already requested or issued' });
+    }
+
+    // Add book issue request
+    book.issuedBooks.push({
+      student: req.user.id,
+      status: 'pending'
+    });
+
+    await book.save();
+
+    res.json({ message: 'Book issue requested', book });
+  } catch (err) {
+    console.error(err);
     res.status(500).send('Server Error');
   }
 };

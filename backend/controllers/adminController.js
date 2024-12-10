@@ -1,4 +1,5 @@
 // backend/controllers/adminController.js
+const bcrypt = require('bcrypt');
 const Library = require('../models/Library');
 const  Syllabus = require('../models/Syllabus');
 const StudyMaterial = require('../models/StudyMaterial')
@@ -109,9 +110,55 @@ exports.getAllUsers = async (req, res) => {
 };
 
 // Create User (Admin can create users)
+// exports.createUser = async (req, res) => {
+//   try {
+//     const { name, email, password, role } = req.body;
+
+//     // Check if user already exists
+//     let user = await User.findOne({ email });
+//     if (user) {
+//       return res.status(400).json({ message: 'User already exists' });
+//     }
+
+//     // Create new user
+//     user = new User({
+//       name,
+//       email,
+//       password,
+//       role
+//     });
+
+//     // Hash password
+//     const salt = await bcrypt.genSalt(10);
+//     user.password = await bcrypt.hash(password, salt);
+
+//     await user.save();
+
+//     // Remove password from response
+//     const userResponse = user.toObject();
+//     delete userResponse.password;
+
+//     res.status(201).json(userResponse);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
+
+// controllers/adminController.js
 exports.createUser = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { 
+      name, 
+      email, 
+      password, 
+      role, 
+      class: userClass,
+      fatherName,
+      motherName,
+      address
+    } = req.body;
 
     // Check if user already exists
     let user = await User.findOne({ email });
@@ -124,7 +171,11 @@ exports.createUser = async (req, res) => {
       name,
       email,
       password,
-      role
+      role,
+      class: userClass,
+      fatherName,
+      motherName,
+      address
     });
 
     // Hash password
@@ -133,7 +184,7 @@ exports.createUser = async (req, res) => {
 
     await user.save();
 
-    // Remove password from response
+    // Remove sensitive information from response
     const userResponse = user.toObject();
     delete userResponse.password;
 

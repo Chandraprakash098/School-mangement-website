@@ -27,6 +27,7 @@ const studentRoutes = require('./routes/student');
 const teacherRoutes = require('./routes/teacher');
 const transportRoutes = require('./routes/transport');
 const accountRoutes = require('./routes/account');
+const librarianRoutes = require('./routes/librarianRoutes')
 
 
 // Use Routes
@@ -36,6 +37,7 @@ app.use('/api/student', studentRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/transport', transportRoutes);
 app.use('/api/account', accountRoutes);
+app.use('/api/librarian', librarianRoutes);
 
 
 // Error Handling Middleware
