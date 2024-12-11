@@ -22,34 +22,77 @@ const Fees = require('../models/Account')
 //   }
 // };
 
+// exports.getAttendance = async (req, res) => {
+//   try {
+//     console.log('Authenticated User Id:', req.user.id);
+//     console.log('Attendance Request User ID Type:', typeof req.user.id);
+
+//     const attendance = await Attendance.find({ student: req.user.id })
+//       .sort({ date: -1 });
+
+//       console.log('Found Attendance:', attendance);
+    
+//     // Calculate attendance percentage
+//     const totalAttendance = attendance.length;
+//     const presentDays = attendance.filter(a => a.status === 'present').length;
+//     const attendancePercentage = totalAttendance > 0 
+//       ? Math.round((presentDays / totalAttendance) * 100) 
+//       : 0;
+
+//     res.json({
+//       attendanceList: attendance,
+//       attendancePercentage: attendancePercentage
+//     });
+//   } catch (err) {
+//     console.error('Detailed Error:', err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
 exports.getAttendance = async (req, res) => {
   try {
-    console.log('Authenticated User Id:', req.user.id);
-    console.log('Attendance Request User ID Type:', typeof req.user.id);
+    const { 
+      year, 
+      month, 
+      subject 
+    } = req.query;
 
-    const attendance = await Attendance.find({ student: req.user.id })
-      .sort({ date: -1 });
+    // Validate input
+    if (!year || !month || !subject) {
+      return res.status(400).json({ 
+        message: 'Year, month, and subject are required' 
+      });
+    }
 
-      console.log('Found Attendance:', attendance);
-    
-    // Calculate attendance percentage
-    const totalAttendance = attendance.length;
-    const presentDays = attendance.filter(a => a.status === 'present').length;
-    const attendancePercentage = totalAttendance > 0 
-      ? Math.round((presentDays / totalAttendance) * 100) 
+    // Find attendance records matching criteria
+    const attendance = await Attendance.find({
+      student: req.user.id,
+      year: parseInt(year),
+      month: parseInt(month),
+      subject
+    }).sort({ date: 1 });
+
+    // Calculate attendance statistics
+    const totalClasses = attendance.length;
+    const presentClasses = attendance.filter(
+      a => a.status === 'present'
+    ).length;
+
+    const attendancePercentage = totalClasses > 0 
+      ? Math.round((presentClasses / totalClasses) * 100) 
       : 0;
 
     res.json({
       attendanceList: attendance,
-      attendancePercentage: attendancePercentage
+      attendancePercentage,
+      totalClasses,
+      presentClasses
     });
   } catch (err) {
-    console.error('Detailed Error:', err);
+    console.error('Detailed Attendance Error:', err);
     res.status(500).send('Server Error');
   }
 };
-
-
 
 
 exports.getAllAttendance = async (req, res) => {

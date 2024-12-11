@@ -4,6 +4,17 @@ const auth = require('../middleware/auth');
 const roleAuth = require('../middleware/roleAuth');
 const teacherController = require('../controllers/teacherController');
 
+// router.post('/attendance', 
+//   [auth, roleAuth(['teacher'])], 
+//   teacherController.assignAttendance
+// );
+
+// Teacher Routes
+router.get('/students-for-attendance', 
+  [auth, roleAuth(['teacher'])], 
+  teacherController.getStudentsForAttendance
+);
+
 router.post('/attendance', 
   [auth, roleAuth(['teacher'])], 
   teacherController.assignAttendance
