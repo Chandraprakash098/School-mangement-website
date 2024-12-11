@@ -20,6 +20,16 @@ router.get('/homework/:userId',
   studentController.getHomework
 );
 
+router.get('/homework/:homeworkId', 
+  [auth, roleAuth(['student'])], 
+  studentController.getHomeworkDetails
+);
+
+router.post('/homework/:homeworkId/submit', 
+  [auth, roleAuth(['student'])], 
+  studentController.submitHomework
+);
+
 // router.post('/issue-book', 
 //   [auth, roleAuth(['student'])], 
 //   studentController.issueBook

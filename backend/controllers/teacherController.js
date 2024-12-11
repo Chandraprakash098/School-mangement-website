@@ -97,10 +97,55 @@ exports.getStudentsForAttendance = async (req, res) => {
 
 
 
-// Create Homework
+// // Create Homework
+// exports.createHomework = async (req, res) => {
+//   try {
+//     const { title, description, subject, dueDate, studentClass } = req.body;
+
+//     const homework = new Homework({
+//       title,
+//       description,
+//       subject,
+//       dueDate,
+//       studentClass,
+//       teacher: req.user.id
+//     });
+
+//     await homework.save();
+//     res.status(201).json(homework);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
+// exports.getHomeworkSubmissions = async (req, res) => {
+//   try {
+//     const { homeworkId } = req.params;
+
+//     const homework = await Homework.findById(homeworkId)
+//       .populate('submissions.student', 'name email class');
+
+//     if (!homework) {
+//       return res.status(404).json({ message: 'Homework not found' });
+//     }
+
+//     res.json(homework.submissions);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
+
 exports.createHomework = async (req, res) => {
   try {
     const { title, description, subject, dueDate, studentClass } = req.body;
+
+    // Validate input
+    if (!title || !description || !subject || !dueDate || !studentClass) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
 
     const homework = new Homework({
       title,
@@ -113,6 +158,85 @@ exports.createHomework = async (req, res) => {
 
     await homework.save();
     res.status(201).json(homework);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Get Homework Submissions for a specific homework
+exports.getHomeworkSubmissions = async (req, res) => {
+  try {
+    const { homeworkId } = req.params;
+
+    // Find homework and ensure it belongs to the current teacher
+    const homework = await Homework.findOne({
+      _id: homeworkId,
+      teacher: req.user.id
+    }).populate('submissions.student', 'name email class');
+
+    if (!homework) {
+      return res.status(404).json({ message: 'Homework not found or not assigned by you' });
+    }
+
+    res.json(homework.submissions);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Grade and provide feedback for homework submission
+exports.gradeHomeworkSubmission = async (req, res) => {
+  try {
+    const { homeworkId, submissionId } = req.params;
+    const { grade, feedback } = req.body;
+
+    const homework = await Homework.findById(homeworkId);
+
+    if (!homework) {
+      return res.status(404).json({ message: 'Homework not found' });
+    }
+
+    const submission = homework.submissions.id(submissionId);
+
+    if (!submission) {
+      return res.status(404).json({ message: 'Submission not found' });
+    }
+
+    submission.grade = grade;
+    submission.feedback = feedback;
+
+    await homework.save();
+
+    res.json({
+      message: 'Homework submission graded successfully',
+      submission
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Endpoint to download submitted homework PDF
+exports.downloadHomeworkSubmission = async (req, res) => {
+  try {
+    const { homeworkId, submissionId } = req.params;
+
+    const homework = await Homework.findById(homeworkId);
+
+    if (!homework) {
+      return res.status(404).json({ message: 'Homework not found' });
+    }
+
+    const submission = homework.submissions.id(submissionId);
+
+    if (!submission) {
+      return res.status(404).json({ message: 'Submission not found' });
+    }
+
+    res.download(submission.pdfUrl);
   } catch (err) {
     console.error(err);
     res.status(500).send('Server Error');

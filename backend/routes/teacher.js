@@ -25,6 +25,21 @@ router.post('/homework',
   teacherController.createHomework
 );
 
+router.get('/homework/:homeworkId/submissions', 
+  [auth, roleAuth(['teacher'])], 
+  teacherController.getHomeworkSubmissions
+);
+
+router.post('/homework/:homeworkId/submissions/:submissionId/grade', 
+  [auth, roleAuth(['teacher'])], 
+  teacherController.gradeHomeworkSubmission
+);
+
+router.get('/homework/:homeworkId/submissions/:submissionId/download', 
+  [auth, roleAuth(['teacher'])], 
+  teacherController.downloadHomeworkSubmission
+);
+
 router.post('/remarks', 
   [auth, roleAuth(['teacher'])], 
   teacherController.createRemarks
