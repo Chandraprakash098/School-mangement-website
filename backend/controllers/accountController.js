@@ -1,12 +1,16 @@
-
-
-
-
 const Fees = require('../models/Account');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
+// Generate unique receipt number
+function generateReceiptNumber(feeId) {
+  return `RCPT-${feeId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
 // Create Fee Record
 exports.createFeeRecord = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { 
       studentId, 
@@ -18,8 +22,10 @@ exports.createFeeRecord = async (req, res) => {
     } = req.body;
 
     // Verify student exists
-    const student = await User.findById(studentId);
+    const student = await User.findById(studentId).session(session);
     if (!student || student.role !== 'student') {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ message: 'Invalid student' });
     }
 
@@ -28,9 +34,11 @@ exports.createFeeRecord = async (req, res) => {
       student: studentId,
       academicYear,
       semester
-    });
+    }).session(session);
 
     if (existingFeeRecord) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ message: 'Fee record already exists for this student and semester' });
     }
 
@@ -41,13 +49,19 @@ exports.createFeeRecord = async (req, res) => {
       semester,
       feeStructure,
       discounts: discounts || [],
-      dueDate
+      dueDate,
     });
 
-    await feeRecord.save();
+    await feeRecord.save({ session });
+    
+    await session.commitTransaction();
+    session.endSession();
+
     console.log(`Fee record created for student ${studentId}`);
     res.status(201).json(feeRecord);
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
     console.error(err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -55,6 +69,9 @@ exports.createFeeRecord = async (req, res) => {
 
 // Process Fee Payment
 exports.processFeePayment = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { feeId } = req.params;
     const { 
@@ -63,22 +80,44 @@ exports.processFeePayment = async (req, res) => {
       receiptNumber 
     } = req.body;
 
-    const feeRecord = await Fees.findById(feeId);
+    const feeRecord = await Fees.findById(feeId).session(session);
     if (!feeRecord) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: 'Fee record not found' });
+    }
+
+    // Generate or use provided receipt number
+    const finalReceiptNumber = receiptNumber || generateReceiptNumber(feeId);
+
+    // Check if receipt number is already used in this fee record
+    const isDuplicateReceipt = feeRecord.paymentDetails.some(
+      payment => payment.receiptNumber === finalReceiptNumber
+    );
+
+    if (isDuplicateReceipt) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Receipt number already exists' });
     }
 
     // Add payment details
     feeRecord.paymentDetails.push({
       amountPaid,
       paymentMethod,
-      receiptNumber,
+      receiptNumber: finalReceiptNumber,
       paymentStatus: 'Completed'
     });
 
-    await feeRecord.save();
+    await feeRecord.save({ session });
+    
+    await session.commitTransaction();
+    session.endSession();
+
     res.json(feeRecord);
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
     console.error(err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -177,6 +216,148 @@ exports.deleteFeeRecord = async (req, res) => {
     }
 
     res.json({ message: 'Fee record deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+
+// Get Students by Class
+exports.getStudentsByClass = async (req, res) => {
+  try {
+    const { className } = req.params;
+
+    // Find students in the specified class
+    const students = await User.find({
+      role: 'student',
+      class: className
+    }).select('name email class');
+
+    if (!students.length) {
+      return res.status(404).json({ 
+        message: `No students found in class ${className}`,
+        students: []
+      });
+    }
+
+    res.json({
+      message: `Students in class ${className}`,
+      students: students
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Create Fee Record for Specific Student
+exports.createFeeRecordForStudent = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { 
+      studentId, 
+      academicYear, 
+      semester, 
+      feeStructure, 
+      discounts, 
+      dueDate 
+    } = req.body;
+
+    // Verify student exists
+    const student = await User.findById(studentId).session(session);
+    if (!student || student.role !== 'student') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Invalid student' });
+    }
+
+    // Check for existing fee record for the specific period
+    const existingFeeRecord = await Fees.findOne({
+      student: studentId,
+      academicYear,
+      semester
+    }).session(session);
+
+    if (existingFeeRecord) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Fee record already exists for this student and semester' });
+    }
+
+    // Create new fee record
+    const feeRecord = new Fees({
+      student: studentId,
+      academicYear,
+      semester,
+      feeStructure,
+      discounts: discounts || [],
+      dueDate,
+    });
+
+    await feeRecord.save({ session });
+    
+    await session.commitTransaction();
+    session.endSession();
+
+    console.log(`Fee record created for student ${studentId}`);
+    res.status(201).json(feeRecord);
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Get Available Classes
+exports.getAvailableClasses = async (req, res) => {
+  try {
+    // Retrieve unique classes with students
+    const classes = await User.distinct('class', { role: 'student' });
+
+    res.json({
+      message: 'Available classes',
+      classes: classes
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Get Fee Details for Specific Student and Period
+exports.getFeeDetailsForStudentPeriod = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { academicYear, semester } = req.query;
+
+    // Find fee record for the specific student, academic year, and semester
+    const feeRecord = await Fees.findOne({
+      student: studentId,
+      academicYear,
+      semester
+    }).populate('student', 'name email');
+
+    if (!feeRecord) {
+      return res.status(404).json({ message: 'No fee record found for the specified period' });
+    }
+
+    res.json({
+      studentName: feeRecord.student.name,
+      studentEmail: feeRecord.student.email,
+      academicYear: feeRecord.academicYear,
+      semester: feeRecord.semester,
+      feeStructure: feeRecord.feeStructure,
+      totalFeeAmount: feeRecord.totalFeeAmount,
+      remainingBalance: feeRecord.remainingBalance,
+      paymentStatus: feeRecord.paymentStatus,
+      dueDate: feeRecord.dueDate,
+      discounts: feeRecord.discounts,
+      paymentDetails: feeRecord.paymentDetails
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error', error: err.message });

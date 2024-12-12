@@ -84,6 +84,11 @@ router.get('/fee-details',
   studentController.getStudentFeeDetails
 );
 
+router.get('/fee-details-period', 
+  [auth, roleAuth(['student'])], 
+  studentController.getStudentFeeDetailsForPeriod
+);
+
 router.get('/available-books', 
   [auth, roleAuth(['student'])], 
   studentController.getAvailableBooks

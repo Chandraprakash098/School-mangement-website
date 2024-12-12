@@ -670,10 +670,77 @@ exports.getStudentProfile = async (req, res) => {
   }
 };
 
-// Get Student Fee Details
+// // Get Student Fee Details
+// exports.getStudentFeeDetails = async (req, res) => {
+//   try {
+//     // Find fee records for the authenticated student
+//     const feeRecords = await Fees.find({
+//       student: req.user.id,
+//     }).sort({ createdAt: -1 });
+
+//     if (!feeRecords || feeRecords.length === 0) {
+//       return res.status(404).json({ message: "No fee records found" });
+//     }
+
+//     // Prepare a detailed fee summary
+//     const feeSummary = feeRecords.map((record) => ({
+//       academicYear: record.academicYear,
+//       semester: record.semester,
+//       feeStructure: record.feeStructure,
+//       totalFeeAmount: record.totalFeeAmount,
+//       remainingBalance: record.remainingBalance,
+//       paymentStatus: record.paymentStatus,
+//       dueDate: record.dueDate,
+//       discounts: record.discounts,
+//       paymentDetails: record.paymentDetails,
+//     }));
+
+//     res.json(feeSummary);
+//   } catch (err) {
+//     console.error("Error fetching student fee details:", err);
+//     res.status(500).send("Server Error");
+//   }
+// };
+
+
+exports.getStudentFeeDetailsForPeriod = async (req, res) => {
+  try {
+    const { academicYear, semester } = req.query;
+
+    // Find fee record for the authenticated student and specified period
+    const feeRecord = await Fees.findOne({
+      student: req.user.id,
+      academicYear,
+      semester
+    });
+
+    if (!feeRecord) {
+      return res.status(404).json({ message: "No fee record found for the specified period" });
+    }
+
+    // Prepare detailed fee summary
+    const feeSummary = {
+      academicYear: feeRecord.academicYear,
+      semester: feeRecord.semester,
+      feeStructure: feeRecord.feeStructure,
+      totalFeeAmount: feeRecord.totalFeeAmount,
+      remainingBalance: feeRecord.remainingBalance,
+      paymentStatus: feeRecord.paymentStatus,
+      dueDate: feeRecord.dueDate,
+      discounts: feeRecord.discounts,
+      paymentDetails: feeRecord.paymentDetails,
+    };
+
+    res.json(feeSummary);
+  } catch (err) {
+    console.error("Error fetching student fee details:", err);
+    res.status(500).send("Server Error");
+  }
+};
+
+// Existing method remains the same
 exports.getStudentFeeDetails = async (req, res) => {
   try {
-    // Find fee records for the authenticated student
     const feeRecords = await Fees.find({
       student: req.user.id,
     }).sort({ createdAt: -1 });
@@ -682,7 +749,6 @@ exports.getStudentFeeDetails = async (req, res) => {
       return res.status(404).json({ message: "No fee records found" });
     }
 
-    // Prepare a detailed fee summary
     const feeSummary = feeRecords.map((record) => ({
       academicYear: record.academicYear,
       semester: record.semester,
@@ -701,6 +767,7 @@ exports.getStudentFeeDetails = async (req, res) => {
     res.status(500).send("Server Error");
   }
 };
+
 
 exports.getAvailableBooks = async (req, res) => {
   try {

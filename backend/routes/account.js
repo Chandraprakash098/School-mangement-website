@@ -39,6 +39,30 @@ const auth = require('../middleware/auth');
 const roleAuth = require('../middleware/roleAuth');
 const feesController = require('../controllers/accountController');
 
+
+// Get students by class
+router.get('/students/:className', 
+  [auth, roleAuth(['admin', 'account'])], 
+  feesController.getStudentsByClass
+);
+
+router.get('/available-classes', 
+  [auth, roleAuth(['admin', 'account'])], 
+  feesController.getAvailableClasses
+);
+
+// Create fee record for specific student
+router.post('/create-fee-record', 
+  [auth, roleAuth(['admin', 'account'])], 
+  feesController.createFeeRecordForStudent
+);
+
+// Get fee details for specific student and period
+router.get('/student-fee-details/:studentId', 
+  [auth, roleAuth(['admin', 'account', 'student'])], 
+  feesController.getFeeDetailsForStudentPeriod
+);
+
 // Create new fee record
 router.post('/create', 
   [auth, roleAuth(['admin', 'account'])], 

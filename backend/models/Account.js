@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 
 const FeesSchema = new mongoose.Schema({
@@ -120,7 +119,7 @@ const FeesSchema = new mongoose.Schema({
     },
     receiptNumber: {
       type: String,
-      unique: true
+      default: null // Change to allow null by default
     },
     paymentStatus: {
       type: String,
@@ -144,7 +143,15 @@ const FeesSchema = new mongoose.Schema({
   notes: {
     type: String
   }
-}, { timestamps: true });
+}, { 
+  timestamps: true,
+  // Remove unique index on receiptNumber
+  // Add a compound unique index if needed
+  // Indices can be defined separately using mongoose.model
+});
+
+// Remove unique constraint on receiptNumber
+FeesSchema.index({ 'paymentDetails.receiptNumber': 1 }, { unique: false });
 
 // Pre-save middleware to calculate total fee amount and remaining balance
 FeesSchema.pre('save', function(next) {
