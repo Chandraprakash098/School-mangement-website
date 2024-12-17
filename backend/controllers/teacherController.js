@@ -6,33 +6,54 @@ const User = require('../models/User');
 const Remarks = require('../models/Remarks');
 const moment = require('moment');
 
-// // Assign Attendance
+
+// Assign Attendance for multiple students
 // exports.assignAttendance = async (req, res) => {
 //   try {
-//     const { studentId, status, date } = req.body;
+//     const { 
+//       students, 
+//       subject, 
+//       class: studentClass, 
+//       date 
+//     } = req.body;
 
-//     // Verify student exists
-//     const student = await User.findById(studentId);
-//     if (!student || student.role !== 'student') {
-//       return res.status(404).json({ message: 'Student not found' });
+//     // Validate input
+//     if (!students || !Array.isArray(students) || students.length === 0) {
+//       return res.status(400).json({ message: 'No students provided' });
 //     }
 
-//     const attendance = new Attendance({
-//       student: studentId,
-//       date: date || new Date(),
-//       status,
-//       teacher: req.user.id
-//     });
+//     // Convert date to a Date object if it's a valid string
+//     const attendanceDate = date ? new Date(date) : new Date();
+//     if (isNaN(attendanceDate.getTime())) {
+//       return res.status(400).json({ message: 'Invalid date format' });
+//     }
 
-//     await attendance.save();
-//     res.status(201).json(attendance);
+//     // Prepare bulk write operations
+//     const bulkOperations = students.map(student => ({
+//       student: student.id,
+//       subject,
+//       class: studentClass,
+//       date: attendanceDate,
+//       status: student.status,
+//       teacher: req.user.id,
+//       year: attendanceDate.getFullYear(),
+//       month: attendanceDate.getMonth() + 1, // January is 0, December is 11
+//     }));
+
+//     // Perform bulk insert
+//     const attendanceRecords = await Attendance.insertMany(bulkOperations);
+
+//     res.status(201).json({
+//       message: 'Attendance assigned successfully',
+//       recordsCreated: attendanceRecords.length,
+//     });
 //   } catch (err) {
-//     console.error(err);
+//     console.error('Attendance Assignment Error:', err);
 //     res.status(500).send('Server Error');
 //   }
 // };
 
-// Assign Attendance for multiple students
+
 exports.assignAttendance = async (req, res) => {
   try {
     const { 
@@ -55,11 +76,11 @@ exports.assignAttendance = async (req, res) => {
 
     // Prepare bulk write operations
     const bulkOperations = students.map(student => ({
-      student: student.id,
+      student: student.id, // Ensure this matches the student ID from the frontend
       subject,
       class: studentClass,
       date: attendanceDate,
-      status: student.status,
+      status: student.status || 'absent', // Default to 'absent' if no status
       teacher: req.user.id,
       year: attendanceDate.getFullYear(),
       month: attendanceDate.getMonth() + 1, // January is 0, December is 11
@@ -74,9 +95,24 @@ exports.assignAttendance = async (req, res) => {
     });
   } catch (err) {
     console.error('Attendance Assignment Error:', err);
-    res.status(500).send('Server Error');
+    
+    // More detailed error response
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({ 
+        message: 'Validation Error', 
+        errors: errors 
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Server Error', 
+      error: err.toString() 
+    });
   }
 };
+
+
 // Get Students for Attendance Assignment
 exports.getStudentsForAttendance = async (req, res) => {
   try {
@@ -97,45 +133,6 @@ exports.getStudentsForAttendance = async (req, res) => {
 
 
 
-// // Create Homework
-// exports.createHomework = async (req, res) => {
-//   try {
-//     const { title, description, subject, dueDate, studentClass } = req.body;
-
-//     const homework = new Homework({
-//       title,
-//       description,
-//       subject,
-//       dueDate,
-//       studentClass,
-//       teacher: req.user.id
-//     });
-
-//     await homework.save();
-//     res.status(201).json(homework);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send('Server Error');
-//   }
-// };
-
-// exports.getHomeworkSubmissions = async (req, res) => {
-//   try {
-//     const { homeworkId } = req.params;
-
-//     const homework = await Homework.findById(homeworkId)
-//       .populate('submissions.student', 'name email class');
-
-//     if (!homework) {
-//       return res.status(404).json({ message: 'Homework not found' });
-//     }
-
-//     res.json(homework.submissions);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send('Server Error');
-//   }
-// };
 
 
 exports.createHomework = async (req, res) => {
