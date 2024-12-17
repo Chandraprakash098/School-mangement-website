@@ -76,11 +76,11 @@ exports.assignAttendance = async (req, res) => {
 
     // Prepare bulk write operations
     const bulkOperations = students.map(student => ({
-      student: student.id, // Ensure this matches the student ID from the frontend
+      student: student.id, // Make sure this matches the MongoDB ObjectId
       subject,
       class: studentClass,
       date: attendanceDate,
-      status: student.status || 'absent', // Default to 'absent' if no status
+      status: student.status || 'absent', // Default to 'absent' if no status provided
       teacher: req.user.id,
       year: attendanceDate.getFullYear(),
       month: attendanceDate.getMonth() + 1, // January is 0, December is 11
@@ -95,19 +95,9 @@ exports.assignAttendance = async (req, res) => {
     });
   } catch (err) {
     console.error('Attendance Assignment Error:', err);
-    
-    // More detailed error response
-    if (err.name === 'ValidationError') {
-      const errors = Object.values(err.errors).map(e => e.message);
-      return res.status(400).json({ 
-        message: 'Validation Error', 
-        errors: errors 
-      });
-    }
-    
-    res.status(500).json({ 
-      message: 'Server Error', 
-      error: err.toString() 
+    res.status(500).json({
+      message: 'Server Error',
+      error: err.message
     });
   }
 };
