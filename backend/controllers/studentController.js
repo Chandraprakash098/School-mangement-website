@@ -150,8 +150,8 @@ exports.getHomework = async (req, res) => {
 //     // The homework.homeworkPdf should be stored as a relative path like 'uploads/homework/filename.pdf'
 //     // We need to construct the absolute path relative to the project root
 //     const relativePath = homework.homeworkPdf.replace(/\\/g, '/'); // Normalize path separators
-//     const filePath = path.join(__dirname, relativePath);  // Use __dirname to get the current directory
-
+//     const filePath = path.join(process.cwd(), relativePath);
+    
 //     console.log("File relative path:", relativePath);
 //     console.log("Constructed absolute path:", filePath);
 
@@ -191,18 +191,15 @@ exports.getHomework = async (req, res) => {
 // };
 
 
-
 exports.downloadHomework = async (req, res) => {
   try {
     const { homeworkId } = req.params;
-
-    // Get current user's details
     const user = await User.findById(req.user.id);
+    
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Find homework assigned to the student's class
     const homework = await Homework.findOne({
       _id: homeworkId,
       studentClass: user.class,
@@ -214,47 +211,35 @@ exports.downloadHomework = async (req, res) => {
       });
     }
 
-    // Ensure homeworkPdf path exists
     if (!homework.homeworkPdf) {
       return res.status(404).json({
         message: "No PDF file found for this homework",
       });
     }
 
-    // The homework.homeworkPdf should be stored as a relative path like 'uploads/homework/filename.pdf'
-    // We need to construct the absolute path relative to the project root
-    const relativePath = homework.homeworkPdf.replace(/\\/g, '/'); // Normalize path separators
-    const filePath = path.join(process.cwd(), relativePath);
+    const filePath = path.join(process.cwd(), homework.homeworkPdf);
     
-    console.log("File relative path:", relativePath);
-    console.log("Constructed absolute path:", filePath);
-
-    // Verify file exists before attempting to send
     if (!fs.existsSync(filePath)) {
-      console.error("File not found:", filePath);
       return res.status(404).json({
         message: "PDF file not found on server",
       });
     }
 
-    // Get the original filename
+    // Set Content-Disposition with the original filename
     const fileName = path.basename(homework.homeworkPdf);
-
-    // Set proper headers
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
 
-    // Stream the file
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-
-    // Handle stream errors
-    fileStream.on('error', (error) => {
-      console.error("Stream error:", error);
+    // Stream the file with error handling
+    const stream = fs.createReadStream(filePath);
+    stream.on('error', (error) => {
+      console.error('Error streaming file:', error);
       if (!res.headersSent) {
         res.status(500).json({ message: "Error streaming file" });
       }
     });
+
+    stream.pipe(res);
 
   } catch (err) {
     console.error("Download Error:", err);
@@ -263,6 +248,7 @@ exports.downloadHomework = async (req, res) => {
     }
   }
 };
+
 
 
 // Get specific homework details for a student
@@ -301,96 +287,139 @@ exports.getHomeworkDetails = async (req, res) => {
 };
 
 // Submit homework with PDF
+// exports.submitHomework = async (req, res) => {
+//   // Use upload.single middleware directly in the route handler
+//   upload.single("homeworkPdf")(req, res, async (uploadErr) => {
+//     // First, handle any multer upload errors
+//     if (uploadErr) {
+//       return res.status(400).json({ 
+//         message: "File upload error", 
+//         error: uploadErr.message 
+//       });
+//     }
+
+//     try {
+//       // Extract homework ID from request params
+//       const { homeworkId } = req.params;
+
+//       // Detailed logging for debugging
+//       console.log("User ID from Token:", req.user.id);
+//       console.log("Received Homework ID:", homeworkId);
+//       console.log("Uploaded File:", req.file);
+
+//       // Validate homework ID
+//       if (!mongoose.Types.ObjectId.isValid(homeworkId)) {
+//         return res.status(400).json({
+//           message: "Invalid homework ID",
+//           details: `Received ID: ${homeworkId}`
+//         });
+//       }
+
+//       // Find the homework
+//       const homework = await Homework.findById(homeworkId);
+//       if (!homework) {
+//         return res.status(404).json({ 
+//           message: "Homework not found",
+//           details: `No homework found with ID: ${homeworkId}`
+//         });
+//       }
+
+//       // Verify the homework is for the student's class
+//       const user = await User.findById(req.user.id);
+//       if (homework.studentClass !== user.class) {
+//         return res.status(403).json({ 
+//           message: "Homework not assigned to your class" 
+//         });
+//       }
+
+//       // Check due date
+//       if (new Date() > homework.dueDate) {
+//         return res.status(400).json({ 
+//           message: "Homework submission is past due date" 
+//         });
+//       }
+
+//       // Validate file upload
+//       if (!req.file) {
+//         return res.status(400).json({ 
+//           message: "PDF file is required" 
+//         });
+//       }
+
+//       // Remove previous submission if exists
+//       homework.submissions = homework.submissions.filter(
+//         (submission) => submission.student.toString() !== req.user.id
+//       );
+
+//       // Add new submission
+//       homework.submissions.push({
+//         student: req.user.id,
+//         pdfUrl: req.file.path,
+//         submittedAt: new Date()
+//       });
+
+//       // Save the updated homework
+//       await homework.save();
+
+//       res.json({
+//         message: "Homework submitted successfully",
+//         submission: {
+//           pdfUrl: req.file.path,
+//           submittedAt: new Date()
+//         }
+//       });
+
+//     } catch (err) {
+//       console.error("Homework Submission Error:", err);
+//       res.status(500).json({ 
+//         message: "Server Error", 
+//         error: err.message 
+//       });
+//     }
+//   });
+// };
+
 exports.submitHomework = async (req, res) => {
-  // Use upload.single middleware directly in the route handler
-  upload.single("homeworkPdf")(req, res, async (uploadErr) => {
-    // First, handle any multer upload errors
-    if (uploadErr) {
-      return res.status(400).json({ 
-        message: "File upload error", 
-        error: uploadErr.message 
-      });
+  try {
+    const { homeworkId } = req.params;
+    
+    // Ensure file was uploaded
+    if (!req.file) {
+      return res.status(400).json({ message: 'No PDF file uploaded' });
     }
 
-    try {
-      // Extract homework ID from request params
-      const { homeworkId } = req.params;
-
-      // Detailed logging for debugging
-      console.log("User ID from Token:", req.user.id);
-      console.log("Received Homework ID:", homeworkId);
-      console.log("Uploaded File:", req.file);
-
-      // Validate homework ID
-      if (!mongoose.Types.ObjectId.isValid(homeworkId)) {
-        return res.status(400).json({
-          message: "Invalid homework ID",
-          details: `Received ID: ${homeworkId}`
-        });
-      }
-
-      // Find the homework
-      const homework = await Homework.findById(homeworkId);
-      if (!homework) {
-        return res.status(404).json({ 
-          message: "Homework not found",
-          details: `No homework found with ID: ${homeworkId}`
-        });
-      }
-
-      // Verify the homework is for the student's class
-      const user = await User.findById(req.user.id);
-      if (homework.studentClass !== user.class) {
-        return res.status(403).json({ 
-          message: "Homework not assigned to your class" 
-        });
-      }
-
-      // Check due date
-      if (new Date() > homework.dueDate) {
-        return res.status(400).json({ 
-          message: "Homework submission is past due date" 
-        });
-      }
-
-      // Validate file upload
-      if (!req.file) {
-        return res.status(400).json({ 
-          message: "PDF file is required" 
-        });
-      }
-
-      // Remove previous submission if exists
-      homework.submissions = homework.submissions.filter(
-        (submission) => submission.student.toString() !== req.user.id
-      );
-
-      // Add new submission
-      homework.submissions.push({
-        student: req.user.id,
-        pdfUrl: req.file.path,
-        submittedAt: new Date()
-      });
-
-      // Save the updated homework
-      await homework.save();
-
-      res.json({
-        message: "Homework submitted successfully",
-        submission: {
-          pdfUrl: req.file.path,
-          submittedAt: new Date()
-        }
-      });
-
-    } catch (err) {
-      console.error("Homework Submission Error:", err);
-      res.status(500).json({ 
-        message: "Server Error", 
-        error: err.message 
-      });
+    const homework = await Homework.findById(homeworkId);
+    if (!homework) {
+      return res.status(404).json({ message: 'Homework not found' });
     }
-  });
+
+    // Check if student has already submitted
+    const existingSubmission = homework.submissions.find(
+      sub => sub.student.toString() === req.user.id
+    );
+
+    if (existingSubmission) {
+      return res.status(400).json({ message: 'You have already submitted this homework' });
+    }
+
+    // Add new submission
+    homework.submissions.push({
+      student: req.user.id,
+      pdfUrl: req.file.path,
+      submittedAt: new Date(),
+    });
+
+    await homework.save();
+
+    res.status(200).json({
+      message: 'Homework submitted successfully',
+      submission: homework.submissions[homework.submissions.length - 1]
+    });
+
+  } catch (err) {
+    console.error('Submit homework error:', err);
+    res.status(500).json({ message: 'Error submitting homework' });
+  }
 };
 
 // Issue Library Book

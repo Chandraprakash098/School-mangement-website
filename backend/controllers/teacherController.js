@@ -342,31 +342,7 @@ exports.getTeacherAttendanceHistory = async (req, res) => {
 
 
 
-// exports.createHomework = async (req, res) => {
-//   try {
-//     const { title, description, subject, dueDate, studentClass } = req.body;
 
-//     // Validate input
-//     if (!title || !description || !subject || !dueDate || !studentClass) {
-//       return res.status(400).json({ message: 'All fields are required' });
-//     }
-
-//     const homework = new Homework({
-//       title,
-//       description,
-//       subject,
-//       dueDate,
-//       studentClass,
-//       teacher: req.user.id
-//     });
-
-//     await homework.save();
-//     res.status(201).json(homework);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send('Server Error');
-//   }
-// };
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
