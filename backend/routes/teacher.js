@@ -10,14 +10,39 @@ const teacherController = require('../controllers/teacherController');
 // );
 
 // Teacher Routes
+// router.get('/students-for-attendance', 
+//   [auth, roleAuth(['teacher'])], 
+//   teacherController.getStudentsForAttendance
+// );
+
+// router.post('/attendance', 
+//   [auth, roleAuth(['teacher'])], 
+//   teacherController.assignAttendance
+// );
+
+
+// Get students for attendance
 router.get('/students-for-attendance', 
   [auth, roleAuth(['teacher'])], 
   teacherController.getStudentsForAttendance
 );
 
+// Check if attendance exists
+router.get('/check-attendance',
+  [auth, roleAuth(['teacher'])],
+  teacherController.checkAttendanceExists
+);
+
+// Assign attendance
 router.post('/attendance', 
   [auth, roleAuth(['teacher'])], 
   teacherController.assignAttendance
+);
+
+// Get teacher's attendance history
+router.get('/attendance-history',
+  [auth, roleAuth(['teacher'])],
+  teacherController.getTeacherAttendanceHistory
 );
 
 router.post('/homework', 

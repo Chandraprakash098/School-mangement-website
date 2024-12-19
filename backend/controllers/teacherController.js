@@ -8,7 +8,7 @@ const moment = require('moment');
 const multer = require('multer');
 const path = require('path');
 
-// Assign Attendance for multiple students
+
 // exports.assignAttendance = async (req, res) => {
 //   try {
 //     const { 
@@ -31,11 +31,11 @@ const path = require('path');
 
 //     // Prepare bulk write operations
 //     const bulkOperations = students.map(student => ({
-//       student: student.id,
+//       student: student.id, // Make sure this matches the MongoDB ObjectId
 //       subject,
 //       class: studentClass,
 //       date: attendanceDate,
-//       status: student.status,
+//       status: student.status || 'absent', // Default to 'absent' if no status provided
 //       teacher: req.user.id,
 //       year: attendanceDate.getFullYear(),
 //       month: attendanceDate.getMonth() + 1, // January is 0, December is 11
@@ -50,11 +50,97 @@ const path = require('path');
 //     });
 //   } catch (err) {
 //     console.error('Attendance Assignment Error:', err);
+//     res.status(500).json({
+//       message: 'Server Error',
+//       error: err.message
+//     });
+//   }
+// };
+
+
+// // Get Students for Attendance Assignment
+// exports.getStudentsForAttendance = async (req, res) => {
+//   try {
+//     const { class: studentClass } = req.query;
+
+//     // Find all students of the specified class
+//     const students = await User.find({
+//       role: 'student',
+//       class: studentClass
+//     }).select('name _id');
+
+//     res.json(students);
+//   } catch (err) {
+//     console.error(err);
 //     res.status(500).send('Server Error');
 //   }
 // };
 
 
+exports.getStudentsForAttendance = async (req, res) => {
+  try {
+    const { class: studentClass } = req.query;
+
+    if (!studentClass) {
+      return res.status(400).json({ message: 'Class is required' });
+    }
+
+    // Find all students of the specified class
+    const students = await User.find({
+      role: 'student',
+      class: studentClass
+    }).select('name _id');
+
+    if (!students || students.length === 0) {
+      return res.status(404).json({ message: 'No students found in this class' });
+    }
+
+    res.json(students);
+  } catch (err) {
+    console.error('Error fetching students:', err);
+    res.status(500).json({ message: 'Server Error', error: err.message });
+  }
+};
+
+// Check if attendance exists
+exports.checkAttendanceExists = async (req, res) => {
+  try {
+    const { class: studentClass, subject, date } = req.query;
+
+    // Validate required fields
+    if (!studentClass || !subject || !date) {
+      return res.status(400).json({ 
+        message: 'Class, subject, and date are required' 
+      });
+    }
+
+    // Parse the date string to a Date object
+    const checkDate = new Date(date);
+    // Set time to start of day for consistent comparison
+    checkDate.setHours(0, 0, 0, 0);
+
+    // Set end of day for date range query
+    const endDate = new Date(checkDate);
+    endDate.setHours(23, 59, 59, 999);
+
+    // Check if attendance exists for this class, subject, and date
+    const existingAttendance = await Attendance.findOne({
+      class: studentClass,
+      subject,
+      date: {
+        $gte: checkDate,
+        $lte: endDate
+      }
+    });
+
+    res.json(!!existingAttendance); // Returns true if attendance exists, false otherwise
+  } catch (err) {
+    console.error('Error checking attendance:', err);
+    res.status(500).json({ message: 'Server Error', error: err.message });
+  }
+};
+
+// Assign Attendance
 exports.assignAttendance = async (req, res) => {
   try {
     const { 
@@ -69,22 +155,61 @@ exports.assignAttendance = async (req, res) => {
       return res.status(400).json({ message: 'No students provided' });
     }
 
-    // Convert date to a Date object if it's a valid string
-    const attendanceDate = date ? new Date(date) : new Date();
+    if (!subject || !studentClass) {
+      return res.status(400).json({ message: 'Subject and class are required' });
+    }
+
+    // Convert date string to Date object
+    const attendanceDate = new Date(date);
     if (isNaN(attendanceDate.getTime())) {
       return res.status(400).json({ message: 'Invalid date format' });
     }
 
+    // Check if attendance already exists for this date
+    const startOfDay = new Date(attendanceDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(attendanceDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingAttendance = await Attendance.findOne({
+      class: studentClass,
+      subject,
+      date: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
+    });
+
+    if (existingAttendance) {
+      return res.status(409).json({ 
+        message: 'Attendance already exists for this date' 
+      });
+    }
+
+    // Validate all students exist
+    const studentIds = students.map(s => s.id);
+    const existingStudents = await User.find({
+      _id: { $in: studentIds },
+      role: 'student',
+      class: studentClass
+    });
+
+    if (existingStudents.length !== studentIds.length) {
+      return res.status(400).json({ 
+        message: 'Some student IDs are invalid' 
+      });
+    }
+
     // Prepare bulk write operations
     const bulkOperations = students.map(student => ({
-      student: student.id, // Make sure this matches the MongoDB ObjectId
+      student: student.id,
       subject,
       class: studentClass,
       date: attendanceDate,
-      status: student.status || 'absent', // Default to 'absent' if no status provided
+      status: student.status || 'absent',
       teacher: req.user.id,
       year: attendanceDate.getFullYear(),
-      month: attendanceDate.getMonth() + 1, // January is 0, December is 11
+      month: attendanceDate.getMonth() + 1,
     }));
 
     // Perform bulk insert
@@ -103,26 +228,32 @@ exports.assignAttendance = async (req, res) => {
   }
 };
 
-
-// Get Students for Attendance Assignment
-exports.getStudentsForAttendance = async (req, res) => {
+// Get Teacher's Assigned Attendance History
+exports.getTeacherAttendanceHistory = async (req, res) => {
   try {
-    const { class: studentClass } = req.query;
+    const { class: studentClass, subject, date } = req.query;
+    const query = { teacher: req.user.id };
 
-    // Find all students of the specified class
-    const students = await User.find({
-      role: 'student',
-      class: studentClass
-    }).select('name _id');
+    if (studentClass) query.class = studentClass;
+    if (subject) query.subject = subject;
+    if (date) {
+      const searchDate = new Date(date);
+      query.date = {
+        $gte: new Date(searchDate.setHours(0, 0, 0, 0)),
+        $lte: new Date(searchDate.setHours(23, 59, 59, 999))
+      };
+    }
 
-    res.json(students);
+    const attendance = await Attendance.find(query)
+      .populate('student', 'name')
+      .sort({ date: -1 });
+
+    res.json(attendance);
   } catch (err) {
-    console.error(err);
-    res.status(500).send('Server Error');
+    console.error('Error fetching attendance history:', err);
+    res.status(500).json({ message: 'Server Error', error: err.message });
   }
 };
-
-
 
 
 
