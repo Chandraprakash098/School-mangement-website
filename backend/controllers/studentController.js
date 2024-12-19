@@ -303,10 +303,12 @@ exports.downloadHomework = async (req, res) => {
       if (err) {
         console.error("Error while downloading file:", err);
         return res.status(500).send("File not found or server error");
+      } else {
+        console.log("File downloaded successfully");
+        res.end("File downloaded successfully");
       }
     });
   } catch (err) {
-    console.error(err);
     console.error("Download Error:", err);
     res.status(500).send("Server Error");
   }
