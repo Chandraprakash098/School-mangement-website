@@ -263,12 +263,68 @@ exports.getHomework = async (req, res) => {
 // };
 
 
+// exports.downloadHomework = async (req, res) => {
+//   try {
+//     const { homeworkId } = req.params;
+
+//     // Get current user's details
+//     const user = await User.findById(req.user.id);
+
+//     // Find homework assigned to the student's class
+//     const homework = await Homework.findOne({
+//       _id: homeworkId,
+//       studentClass: user.class,
+//     });
+
+//     if (!homework) {
+//       return res.status(404).json({
+//         message: "Homework not found or not assigned to your class",
+//       });
+//     }
+
+//     // Convert relative path to absolute path
+//     // const filePath = path.resolve(__dirname, "../", homework.homeworkPdf);
+
+//     // Convert relative path to absolute path
+//     const filePath = path.resolve(__dirname, "../", homework.homeworkPdf.replace(/\\/g, "/"));
+//     // const filePath = path.resolve(__dirname, "../uploads/homework", path.basename(homework.homeworkPdf));
+//     console.log("Constructed File Path:", filePath);
+
+//     // Check if file exists
+//     if (!fs.existsSync(filePath)) {
+//       console.log("File not found on the server:", filePath);
+//       return res.status(404).json({
+//         message: "Homework file not found on the server",
+//       });
+//     }
+
+//     // Send the file to the client
+//     res.download(filePath, (err) => {
+//       if (err) {
+//         console.error("Error while downloading file:", err);
+//         return res.status(500).send("File not found or server error");
+//       } else {
+//         console.log("File downloaded successfully");
+//         res.end("File downloaded successfully");
+//       }
+//     });
+//   } catch (err) {
+//     console.error("Download Error:", err);
+//     res.status(500).send("Server Error");
+//   }
+// };
+
+
+
 exports.downloadHomework = async (req, res) => {
   try {
     const { homeworkId } = req.params;
 
     // Get current user's details
     const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     // Find homework assigned to the student's class
     const homework = await Homework.findOne({
@@ -282,38 +338,55 @@ exports.downloadHomework = async (req, res) => {
       });
     }
 
-    // Convert relative path to absolute path
-    // const filePath = path.resolve(__dirname, "../", homework.homeworkPdf);
-
-    // Convert relative path to absolute path
-    const filePath = path.resolve(__dirname, "../", homework.homeworkPdf.replace(/\\/g, "/"));
-    // const filePath = path.resolve(__dirname, "../uploads/homework", path.basename(homework.homeworkPdf));
-    console.log("Constructed File Path:", filePath);
-
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      console.log("File not found on the server:", filePath);
+    // Ensure homeworkPdf path exists
+    if (!homework.homeworkPdf) {
       return res.status(404).json({
-        message: "Homework file not found on the server",
+        message: "No PDF file found for this homework",
       });
     }
 
-    // Send the file to the client
-    res.download(filePath, (err) => {
-      if (err) {
-        console.error("Error while downloading file:", err);
-        return res.status(500).send("File not found or server error");
-      } else {
-        console.log("File downloaded successfully");
-        res.end("File downloaded successfully");
+    // The homework.homeworkPdf should be stored as a relative path like 'uploads/homework/filename.pdf'
+    // We need to construct the absolute path relative to the project root
+    const relativePath = homework.homeworkPdf.replace(/\\/g, '/'); // Normalize path separators
+    const filePath = path.join(process.cwd(), relativePath);
+    
+    console.log("File relative path:", relativePath);
+    console.log("Constructed absolute path:", filePath);
+
+    // Verify file exists before attempting to send
+    if (!fs.existsSync(filePath)) {
+      console.error("File not found:", filePath);
+      return res.status(404).json({
+        message: "PDF file not found on server",
+      });
+    }
+
+    // Get the original filename
+    const fileName = path.basename(homework.homeworkPdf);
+
+    // Set proper headers
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+
+    // Handle stream errors
+    fileStream.on('error', (error) => {
+      console.error("Stream error:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Error streaming file" });
       }
     });
+
   } catch (err) {
     console.error("Download Error:", err);
-    res.status(500).send("Server Error");
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Server error while downloading file" });
+    }
   }
 };
-
 
 
 // Get specific homework details for a student
