@@ -189,6 +189,79 @@ exports.getHomework = async (req, res) => {
   }
 };
 
+
+// exports.downloadHomework = async (req, res) => {
+//   try {
+//     const { homeworkId } = req.params;
+//     const user = await User.findById(req.user.id);
+
+//     const homework = await Homework.findOne({
+//       _id: homeworkId,
+//       studentClass: user.class
+//     });
+
+//     if (!homework) {
+//       return res.status(404).json({ 
+//         message: "Homework not found or not assigned to your class" 
+//       });
+//     }
+
+//     res.download(homework.homeworkPdf);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
+
+exports.downloadHomework = async (req, res) => {
+  try {
+    const { homeworkId } = req.params;
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const homework = await Homework.findOne({
+      _id: homeworkId,
+      studentClass: user.class
+    });
+
+    if (!homework) {
+      return res.status(404).json({ 
+        message: "Homework not found or not assigned to your class" 
+      });
+    }
+
+    // Get the full path to the PDF file
+    const filePath = path.join(__dirname, '..', homework.homeworkPdf);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ 
+        message: "PDF file not found" 
+      });
+    }
+
+    // Set the appropriate headers
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=homework-${homeworkId}.pdf`);
+
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+
+  } catch (err) {
+    console.error("Download Error:", err);
+    res.status(500).json({ 
+      message: "Error downloading homework",
+      error: err.message 
+    });
+  }
+};
+
+
 // Get specific homework details for a student
 exports.getHomeworkDetails = async (req, res) => {
   try {

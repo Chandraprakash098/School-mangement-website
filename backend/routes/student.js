@@ -20,6 +20,11 @@ router.get('/homework',
   studentController.getHomework
 );
 
+router.get('/homework/:homeworkId/download', 
+  [auth, roleAuth(['student'])], 
+  studentController.downloadHomework
+);
+
 router.get('/homework/:homeworkId', 
   [auth, roleAuth(['student'])], 
   studentController.getHomeworkDetails

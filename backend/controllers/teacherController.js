@@ -5,7 +5,8 @@ const OnlineTest= require('../models/OnlineTest')
 const User = require('../models/User');
 const Remarks = require('../models/Remarks');
 const moment = require('moment');
-
+const multer = require('multer');
+const path = require('path');
 
 // Assign Attendance for multiple students
 // exports.assignAttendance = async (req, res) => {
@@ -125,31 +126,103 @@ exports.getStudentsForAttendance = async (req, res) => {
 
 
 
-exports.createHomework = async (req, res) => {
-  try {
-    const { title, description, subject, dueDate, studentClass } = req.body;
+// exports.createHomework = async (req, res) => {
+//   try {
+//     const { title, description, subject, dueDate, studentClass } = req.body;
 
-    // Validate input
-    if (!title || !description || !subject || !dueDate || !studentClass) {
-      return res.status(400).json({ message: 'All fields are required' });
-    }
+//     // Validate input
+//     if (!title || !description || !subject || !dueDate || !studentClass) {
+//       return res.status(400).json({ message: 'All fields are required' });
+//     }
 
-    const homework = new Homework({
-      title,
-      description,
-      subject,
-      dueDate,
-      studentClass,
-      teacher: req.user.id
-    });
+//     const homework = new Homework({
+//       title,
+//       description,
+//       subject,
+//       dueDate,
+//       studentClass,
+//       teacher: req.user.id
+//     });
 
-    await homework.save();
-    res.status(201).json(homework);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server Error');
+//     await homework.save();
+//     res.status(201).json(homework);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/homework'); // Make sure this directory exists
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'homework-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+// File filter to accept only PDFs
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype === 'application/pdf') {
+    cb(null, true);
+  } else {
+    cb(new Error('Only PDF files are allowed!'), false);
   }
 };
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
+
+exports.createHomework = async (req, res) => {
+  upload.single("homeworkPdf")(req, res, async (uploadErr) => {
+    if (uploadErr) {
+      return res.status(400).json({ 
+        message: "File upload error", 
+        error: uploadErr.message 
+      });
+    }
+
+    try {
+      const { title, description, subject, dueDate, studentClass } = req.body;
+
+      // Validate input
+      if (!title || !description || !subject || !dueDate || !studentClass) {
+        return res.status(400).json({ message: 'All fields are required' });
+      }
+
+      // Validate file upload
+      if (!req.file) {
+        return res.status(400).json({ message: 'Homework PDF file is required' });
+      }
+
+      const homework = new Homework({
+        title,
+        description,
+        subject,
+        dueDate,
+        studentClass,
+        teacher: req.user.id,
+        homeworkPdf: req.file.path  // Save the PDF file path
+      });
+
+      await homework.save();
+      res.status(201).json({
+        message: "Homework assigned successfully",
+        homework,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Server Error');
+    }
+  });
+};
+
 
 // Get Homework Submissions for a specific homework
 exports.getHomeworkSubmissions = async (req, res) => {
@@ -229,6 +302,8 @@ exports.downloadHomeworkSubmission = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+
+
 
 // Create Remarks
 const mongoose = require('mongoose');
