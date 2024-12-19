@@ -215,52 +215,89 @@ exports.getHomework = async (req, res) => {
 // };
 
 
+// exports.downloadHomework = async (req, res) => {
+//   try {
+//     const { homeworkId } = req.params;
+//     const user = await User.findById(req.user.id);
+    
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     const homework = await Homework.findOne({
+//       _id: homeworkId,
+//       studentClass: user.class
+//     });
+
+//     if (!homework) {
+//       return res.status(404).json({ 
+//         message: "Homework not found or not assigned to your class" 
+//       });
+//     }
+
+//     // Get the full path to the PDF file
+//     const filePath = path.join(__dirname, '..', homework.homeworkPdf);
+    
+//     // Check if file exists
+//     if (!fs.existsSync(filePath)) {
+//       return res.status(404).json({ 
+//         message: "PDF file not found" 
+//       });
+//     }
+
+//     // Set the appropriate headers
+//     res.setHeader('Content-Type', 'application/pdf');
+//     res.setHeader('Content-Disposition', `attachment; filename=homework-${homeworkId}.pdf`);
+
+//     // Stream the file
+//     const fileStream = fs.createReadStream(filePath);
+//     fileStream.pipe(res);
+
+//   } catch (err) {
+//     console.error("Download Error:", err);
+//     res.status(500).json({ 
+//       message: "Error downloading homework",
+//       error: err.message 
+//     });
+//   }
+// };
+
+
 exports.downloadHomework = async (req, res) => {
   try {
     const { homeworkId } = req.params;
-    const user = await User.findById(req.user.id);
-    
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
 
+    // Get current user's details
+    const user = await User.findById(req.user.id);
+
+    // Find homework assigned to the student's class
     const homework = await Homework.findOne({
       _id: homeworkId,
-      studentClass: user.class
+      studentClass: user.class,
     });
 
     if (!homework) {
-      return res.status(404).json({ 
-        message: "Homework not found or not assigned to your class" 
+      return res.status(404).json({
+        message: "Homework not found or not assigned to your class",
       });
     }
 
-    // Get the full path to the PDF file
-    const filePath = path.join(__dirname, '..', homework.homeworkPdf);
-    
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ 
-        message: "PDF file not found" 
-      });
-    }
+    // Convert relative path to absolute path
+    const filePath = path.resolve(__dirname, "../", homework.homeworkPdf);
 
-    // Set the appropriate headers
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=homework-${homeworkId}.pdf`);
-
-    // Stream the file
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-
-  } catch (err) {
-    console.error("Download Error:", err);
-    res.status(500).json({ 
-      message: "Error downloading homework",
-      error: err.message 
+    // Send the file to the client
+    res.download(filePath, (err) => {
+      if (err) {
+        console.error("Error while downloading file:", err);
+        return res.status(500).send("File not found or server error");
+      }
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server Error");
   }
 };
+
 
 
 // Get specific homework details for a student
