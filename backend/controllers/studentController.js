@@ -118,80 +118,6 @@ exports.getHomework = async (req, res) => {
 
 
 
-exports.downloadHomework = async (req, res) => {
-  try {
-    const { homeworkId } = req.params;
-
-    // Get current user's details
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Find homework assigned to the student's class
-    const homework = await Homework.findOne({
-      _id: homeworkId,
-      studentClass: user.class,
-    });
-
-    if (!homework) {
-      return res.status(404).json({
-        message: "Homework not found or not assigned to your class",
-      });
-    }
-
-    // Ensure homeworkPdf path exists
-    if (!homework.homeworkPdf) {
-      return res.status(404).json({
-        message: "No PDF file found for this homework",
-      });
-    }
-
-    // The homework.homeworkPdf should be stored as a relative path like 'uploads/homework/filename.pdf'
-    // We need to construct the absolute path relative to the project root
-    const relativePath = homework.homeworkPdf.replace(/\\/g, '/'); // Normalize path separators
-    const filePath = path.join(__dirname, relativePath);  // Use __dirname to get the current directory
-
-    console.log("File relative path:", relativePath);
-    console.log("Constructed absolute path:", filePath);
-
-    // Verify file exists before attempting to send
-    if (!fs.existsSync(filePath)) {
-      console.error("File not found:", filePath);
-      return res.status(404).json({
-        message: "PDF file not found on server",
-      });
-    }
-
-    // Get the original filename
-    const fileName = path.basename(homework.homeworkPdf);
-
-    // Set proper headers
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-
-    // Stream the file
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-
-    // Handle stream errors
-    fileStream.on('error', (error) => {
-      console.error("Stream error:", error);
-      if (!res.headersSent) {
-        res.status(500).json({ message: "Error streaming file" });
-      }
-    });
-
-  } catch (err) {
-    console.error("Download Error:", err);
-    if (!res.headersSent) {
-      res.status(500).json({ message: "Server error while downloading file" });
-    }
-  }
-};
-
-
-
 // exports.downloadHomework = async (req, res) => {
 //   try {
 //     const { homeworkId } = req.params;
@@ -224,8 +150,8 @@ exports.downloadHomework = async (req, res) => {
 //     // The homework.homeworkPdf should be stored as a relative path like 'uploads/homework/filename.pdf'
 //     // We need to construct the absolute path relative to the project root
 //     const relativePath = homework.homeworkPdf.replace(/\\/g, '/'); // Normalize path separators
-//     const filePath = path.join(process.cwd(), relativePath);
-    
+//     const filePath = path.join(__dirname, relativePath);  // Use __dirname to get the current directory
+
 //     console.log("File relative path:", relativePath);
 //     console.log("Constructed absolute path:", filePath);
 
@@ -263,6 +189,80 @@ exports.downloadHomework = async (req, res) => {
 //     }
 //   }
 // };
+
+
+
+exports.downloadHomework = async (req, res) => {
+  try {
+    const { homeworkId } = req.params;
+
+    // Get current user's details
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Find homework assigned to the student's class
+    const homework = await Homework.findOne({
+      _id: homeworkId,
+      studentClass: user.class,
+    });
+
+    if (!homework) {
+      return res.status(404).json({
+        message: "Homework not found or not assigned to your class",
+      });
+    }
+
+    // Ensure homeworkPdf path exists
+    if (!homework.homeworkPdf) {
+      return res.status(404).json({
+        message: "No PDF file found for this homework",
+      });
+    }
+
+    // The homework.homeworkPdf should be stored as a relative path like 'uploads/homework/filename.pdf'
+    // We need to construct the absolute path relative to the project root
+    const relativePath = homework.homeworkPdf.replace(/\\/g, '/'); // Normalize path separators
+    const filePath = path.join(process.cwd(), relativePath);
+    
+    console.log("File relative path:", relativePath);
+    console.log("Constructed absolute path:", filePath);
+
+    // Verify file exists before attempting to send
+    if (!fs.existsSync(filePath)) {
+      console.error("File not found:", filePath);
+      return res.status(404).json({
+        message: "PDF file not found on server",
+      });
+    }
+
+    // Get the original filename
+    const fileName = path.basename(homework.homeworkPdf);
+
+    // Set proper headers
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+
+    // Handle stream errors
+    fileStream.on('error', (error) => {
+      console.error("Stream error:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Error streaming file" });
+      }
+    });
+
+  } catch (err) {
+    console.error("Download Error:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Server error while downloading file" });
+    }
+  }
+};
 
 
 // Get specific homework details for a student
