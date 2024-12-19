@@ -140,179 +140,93 @@ exports.checkAttendanceExists = async (req, res) => {
   }
 };
 
-// Assign Attendance
+
+
+
 // exports.assignAttendance = async (req, res) => {
 //   try {
-//     const { 
-//       students, 
-//       subject, 
-//       class: studentClass, 
-//       date 
-//     } = req.body;
+//       const { students, subject, class: studentClass, date } = req.body;
 
-//     // Validate input
-//     if (!students || !Array.isArray(students) || students.length === 0) {
-//       return res.status(400).json({ message: 'No students provided' });
-//     }
-
-//     if (!subject || !studentClass) {
-//       return res.status(400).json({ message: 'Subject and class are required' });
-//     }
-
-//     // Convert date string to Date object
-//     const attendanceDate = new Date(date);
-//     if (isNaN(attendanceDate.getTime())) {
-//       return res.status(400).json({ message: 'Invalid date format' });
-//     }
-
-//     // Check if attendance already exists for this date
-//     const startOfDay = new Date(attendanceDate);
-//     startOfDay.setHours(0, 0, 0, 0);
-//     const endOfDay = new Date(attendanceDate);
-//     endOfDay.setHours(23, 59, 59, 999);
-
-//     const existingAttendance = await Attendance.findOne({
-//       class: studentClass,
-//       subject,
-//       date: {
-//         $gte: startOfDay,
-//         $lte: endOfDay
+//       // Validate input
+//       if (!students || !Array.isArray(students) || students.length === 0) {
+//           return res.status(400).json({ message: 'No students provided' });
 //       }
-//     });
 
-//     if (existingAttendance) {
-//       return res.status(409).json({ 
-//         message: 'Attendance already exists for this date' 
+//       if (!subject || !studentClass || !date) {
+//           return res.status(400).json({ message: 'Subject, class and date are required' });
+//       }
+
+//       // Convert date string to Date object
+//       const attendanceDate = new Date(date);
+//       if (isNaN(attendanceDate.getTime())) {
+//           return res.status(400).json({ message: 'Invalid date format' });
+//       }
+
+//       // Filter out invalid student IDs
+//       const validStudents = students.filter(s => s.id && s.id.trim().length > 0);
+      
+//       if (validStudents.length === 0) {
+//           return res.status(400).json({ message: 'No valid student IDs provided' });
+//       }
+
+//       // Check if attendance already exists
+//       const startOfDay = new Date(attendanceDate);
+//       startOfDay.setHours(0, 0, 0, 0);
+//       const endOfDay = new Date(attendanceDate);
+//       endOfDay.setHours(23, 59, 59, 999);
+
+//       const existingAttendance = await Attendance.findOne({
+//           class: studentClass,
+//           subject,
+//           date: {
+//               $gte: startOfDay,
+//               $lte: endOfDay
+//           }
 //       });
-//     }
 
-//     // Validate all students exist
-//     const studentIds = students.map(s => s.id);
-//     const existingStudents = await User.find({
-//       _id: { $in: studentIds },
-//       role: 'student',
-//       class: studentClass
-//     });
+//       if (existingAttendance) {
+//           return res.status(409).json({ message: 'Attendance already exists for this date' });
+//       }
 
-//     if (existingStudents.length !== studentIds.length) {
-//       return res.status(400).json({ 
-//         message: 'Some student IDs are invalid' 
+//       // Validate all students exist
+//       const studentIds = validStudents.map(s => s.id);
+//       const existingStudents = await User.find({
+//           _id: { $in: studentIds },
+//           role: 'student',
+//           class: studentClass
 //       });
-//     }
 
-//     // Prepare bulk write operations
-//     const bulkOperations = students.map(student => ({
-//       student: student.id,
-//       subject,
-//       class: studentClass,
-//       date: attendanceDate,
-//       status: student.status || 'absent',
-//       teacher: req.user.id,
-//       year: attendanceDate.getFullYear(),
-//       month: attendanceDate.getMonth() + 1,
-//     }));
+//       if (existingStudents.length !== studentIds.length) {
+//           return res.status(400).json({ message: 'Some student IDs are invalid' });
+//       }
 
-//     // Perform bulk insert
-//     const attendanceRecords = await Attendance.insertMany(bulkOperations);
+//       // Create attendance records
+//       const attendanceRecords = validStudents.map(student => ({
+//           student: student.id,
+//           subject,
+//           class: studentClass,
+//           date: attendanceDate,
+//           status: student.status.toLowerCase(),
+//           teacher: req.user._id, // Make sure to use _id instead of id
+//           year: attendanceDate.getFullYear(),
+//           month: attendanceDate.getMonth() + 1,
+//       }));
 
-//     res.status(201).json({
-//       message: 'Attendance assigned successfully',
-//       recordsCreated: attendanceRecords.length,
-//     });
+//       // Perform bulk insert
+//       await Attendance.insertMany(attendanceRecords);
+
+//       res.status(201).json({
+//           message: 'Attendance submitted successfully',
+//           recordsCreated: attendanceRecords.length
+//       });
 //   } catch (err) {
-//     console.error('Attendance Assignment Error:', err);
-//     res.status(500).json({
-//       message: 'Server Error',
-//       error: err.message
-//     });
+//       console.error('Attendance Assignment Error:', err);
+//       res.status(500).json({
+//           message: 'Server Error',
+//           error: err.message
+//       });
 //   }
 // };
-
-
-// exports.assignAttendance = async (req, res) => {
-//   try {
-//     const { students, subject, class: studentClass, date } = req.body;
-
-//     // Validate input
-//     if (!students || !Array.isArray(students) || students.length === 0) {
-//       return res.status(400).json({ message: 'No students provided' });
-//     }
-
-//     if (!subject || !studentClass) {
-//       return res.status(400).json({ message: 'Subject and class are required' });
-//     }
-
-//     // Convert date string to Date object
-//     const attendanceDate = new Date(date);
-//     if (isNaN(attendanceDate.getTime())) {
-//       return res.status(400).json({ message: 'Invalid date format' });
-//     }
-
-//     // Filter out invalid student IDs
-//     const validStudents = students.filter(s => s.id && s.id.trim().length > 0);
-    
-//     if (validStudents.length === 0) {
-//       return res.status(400).json({ message: 'No valid student IDs provided' });
-//     }
-
-//     // Check if attendance already exists
-//     const startOfDay = new Date(attendanceDate);
-//     startOfDay.setHours(0, 0, 0, 0);
-//     const endOfDay = new Date(attendanceDate);
-//     endOfDay.setHours(23, 59, 59, 999);
-
-//     const existingAttendance = await Attendance.findOne({
-//       class: studentClass,
-//       subject,
-//       date: {
-//         $gte: startOfDay,
-//         $lte: endOfDay
-//       }
-//     });
-
-//     if (existingAttendance) {
-//       return res.status(409).json({ message: 'Attendance already exists for this date' });
-//     }
-
-//     // Validate all students exist
-//     const studentIds = validStudents.map(s => s.id);
-//     const existingStudents = await User.find({
-//       _id: { $in: studentIds },
-//       role: 'student',
-//       class: studentClass
-//     });
-
-//     if (existingStudents.length !== studentIds.length) {
-//       return res.status(400).json({ message: 'Some student IDs are invalid' });
-//     }
-
-//     // Prepare bulk write operations
-//     const bulkOperations = validStudents.map(student => ({
-//       student: student.id,
-//       subject,
-//       class: studentClass,
-//       date: attendanceDate,
-//       status: student.status || 'absent',
-//       teacher: req.user.id,
-//       year: attendanceDate.getFullYear(),
-//       month: attendanceDate.getMonth() + 1,
-//     }));
-
-//     // Perform bulk insert
-//     const attendanceRecords = await Attendance.insertMany(bulkOperations);
-
-//     res.status(201).json({
-//       message: 'Attendance assigned successfully',
-//       recordsCreated: attendanceRecords.length,
-//     });
-//   } catch (err) {
-//     console.error('Attendance Assignment Error:', err);
-//     res.status(500).json({
-//       message: 'Server Error',
-//       error: err.message
-//     });
-//   }
-// }
 
 
 exports.assignAttendance = async (req, res) => {
@@ -332,13 +246,6 @@ exports.assignAttendance = async (req, res) => {
       const attendanceDate = new Date(date);
       if (isNaN(attendanceDate.getTime())) {
           return res.status(400).json({ message: 'Invalid date format' });
-      }
-
-      // Filter out invalid student IDs
-      const validStudents = students.filter(s => s.id && s.id.trim().length > 0);
-      
-      if (validStudents.length === 0) {
-          return res.status(400).json({ message: 'No valid student IDs provided' });
       }
 
       // Check if attendance already exists
@@ -361,7 +268,7 @@ exports.assignAttendance = async (req, res) => {
       }
 
       // Validate all students exist
-      const studentIds = validStudents.map(s => s.id);
+      const studentIds = students.map(s => s.studentId);
       const existingStudents = await User.find({
           _id: { $in: studentIds },
           role: 'student',
@@ -373,26 +280,31 @@ exports.assignAttendance = async (req, res) => {
       }
 
       // Create attendance records
-      const attendanceRecords = validStudents.map(student => ({
-          student: student.id,
+      const attendanceRecords = students.map(student => ({
+          student: new mongoose.Types.ObjectId(student.studentId),  // Convert to ObjectId
           subject,
           class: studentClass,
           date: attendanceDate,
           status: student.status.toLowerCase(),
-          teacher: req.user._id, // Make sure to use _id instead of id
+          teacher: new mongoose.Types.ObjectId(req.user._id),  // Convert to ObjectId
           year: attendanceDate.getFullYear(),
-          month: attendanceDate.getMonth() + 1,
+          month: attendanceDate.getMonth() + 1
       }));
 
       // Perform bulk insert
-      await Attendance.insertMany(attendanceRecords);
+      const result = await Attendance.insertMany(attendanceRecords);
 
       res.status(201).json({
           message: 'Attendance submitted successfully',
-          recordsCreated: attendanceRecords.length
+          recordsCreated: result.length
       });
   } catch (err) {
       console.error('Attendance Assignment Error:', err);
+      if (err.name === 'CastError') {
+          return res.status(400).json({
+              message: 'Invalid ID format provided'
+          });
+      }
       res.status(500).json({
           message: 'Server Error',
           error: err.message
