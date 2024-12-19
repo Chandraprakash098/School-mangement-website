@@ -145,19 +145,42 @@ const upload = multer({
 //   }
 // };
 
+// exports.getHomework = async (req, res) => {
+//   try {
+//     // Find the logged-in user to get their class
+//     const user = await User.findById(req.user.id);
+
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     // Find homework specific to student's class
+//     const homework = await Homework.find({
+//       studentClass: user.class,
+//     }).sort({ createdAt: -1 });
+
+//     res.json(homework);
+//   } catch (err) {
+//     console.error("Detailed Error:", err);
+//     res.status(500).send("Server Error");
+//   }
+// };
+
+
 exports.getHomework = async (req, res) => {
   try {
-    // Find the logged-in user to get their class
     const user = await User.findById(req.user.id);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Find homework specific to student's class
+    // Add .populate('teacher', 'name email') to populate teacher details
     const homework = await Homework.find({
       studentClass: user.class,
-    }).sort({ createdAt: -1 });
+    })
+    .populate('teacher', 'name email _id')  // Add this line
+    .sort({ createdAt: -1 });
 
     res.json(homework);
   } catch (err) {
