@@ -283,7 +283,17 @@ exports.downloadHomework = async (req, res) => {
     }
 
     // Convert relative path to absolute path
-    const filePath = path.resolve(__dirname, "../", homework.homeworkPdf);
+    // const filePath = path.resolve(__dirname, "../", homework.homeworkPdf);
+
+    // Convert relative path to absolute path
+    const filePath = path.resolve(__dirname, "../", homework.homeworkPdf.replace(/\\/g, "/"));
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        message: "Homework file not found on the server",
+      });
+    }
 
     // Send the file to the client
     res.download(filePath, (err) => {
