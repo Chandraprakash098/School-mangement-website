@@ -209,14 +209,21 @@ exports.getHomework = async (req, res) => {
 exports.downloadHomework = async (req, res) => {
   try {
     const { homeworkId } = req.params;
-    const homework = await Homework.findOne({
-      _id: homeworkId,
-      studentClass: user.class,
-    });
+    const user = req.user; // Get user from auth middleware
+
+    // Find the homework assignment
+    const homework = await Homework.findById(homeworkId);
 
     if (!homework) {
       return res.status(404).json({
-        message: "Homework not found or not assigned to your class",
+        message: "Homework not found"
+      });
+    }
+
+    // Verify student's class matches homework's assigned class
+    if (homework.studentClass !== user.class) {
+      return res.status(403).json({
+        message: "This homework is not assigned to your class"
       });
     }
 
@@ -224,19 +231,24 @@ exports.downloadHomework = async (req, res) => {
     const normalizedPath = homework.homeworkPdf.replace(/\\/g, '/');
     const filePath = path.join(process.cwd(), normalizedPath);
 
-    // Verify file exists
+    // Check if file exists
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({
-        message: "PDF file not found on server",
+        message: "PDF file not found on server"
       });
     }
 
-    // Set proper headers
+    // Set appropriate headers
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="homework.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="homework-${homework.title}.pdf"`);
     
     // Stream the file
     const fileStream = fs.createReadStream(filePath);
+    fileStream.on('error', (error) => {
+      console.error('File Stream Error:', error);
+      res.status(500).json({ message: "Error streaming file" });
+    });
+
     fileStream.pipe(res);
   } catch (err) {
     console.error("Download Error:", err);
