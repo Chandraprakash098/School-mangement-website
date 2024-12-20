@@ -221,11 +221,11 @@ exports.downloadHomework = async (req, res) => {
     }
 
     // Verify student's class matches homework's assigned class
-    if (homework.studentClass !== user.class) {
-      return res.status(403).json({
-        message: "This homework is not assigned to your class"
-      });
-    }
+    // if (homework.studentClass !== user.class) {
+    //   return res.status(403).json({
+    //     message: "This homework is not assigned to your class"
+    //   });
+    // }
 
     // Normalize the path
     const normalizedPath = homework.homeworkPdf.replace(/\\/g, '/');
