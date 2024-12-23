@@ -50,6 +50,11 @@ router.post('/homework',
   teacherController.createHomework
 );
 
+router.get('/homework', 
+  [auth, roleAuth(['teacher'])], 
+  teacherController.getTeacherHomework
+);
+
 router.get('/homework/:homeworkId/submissions', 
   [auth, roleAuth(['teacher'])], 
   teacherController.getHomeworkSubmissions

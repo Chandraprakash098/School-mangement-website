@@ -371,6 +371,19 @@ const upload = multer({
   }
 });
 
+exports.getTeacherHomework = async (req, res) => {
+  try {
+    const homework = await Homework.find({ teacher: req.user.id })
+      .populate('submissions.student', 'name email studentClass')
+      .sort({ createdAt: -1 });
+    
+    res.json(homework);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+};
+
 exports.createHomework = async (req, res) => {
   upload.single("homeworkPdf")(req, res, async (uploadErr) => {
     if (uploadErr) {
