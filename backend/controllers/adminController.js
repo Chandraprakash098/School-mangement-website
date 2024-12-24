@@ -39,34 +39,104 @@ exports.addBook = async (req, res) => {
   }
 };
 
-// Add Syllabus
-exports.addSyllabus = async (req, res) => {
-  try {
-    const { 
-      subject, 
-      class: classLevel, 
-      semester, 
-      topics, 
-      recommendedBooks,
-      additionalResources
-    } = req.body;
+// // Add Syllabus
+// exports.addSyllabus = async (req, res) => {
+//   try {
+//     const { 
+//       subject, 
+//       class: classLevel, 
+//       semester, 
+//       topics, 
+//       recommendedBooks,
+//       additionalResources
+//     } = req.body;
 
-    const syllabus = new Syllabus({
-      subject,
-      class: classLevel,
-      semester,
-      topics,
-      recommendedBooks,
-      additionalResources
-    });
+//     const syllabus = new Syllabus({
+//       subject,
+//       class: classLevel,
+//       semester,
+//       topics,
+//       recommendedBooks,
+//       additionalResources
+//     });
 
-    await syllabus.save();
-    res.status(201).json(syllabus);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server Error');
+//     await syllabus.save();
+//     res.status(201).json(syllabus);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
+
+const multer = require('multer');
+const path = require('path');
+
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, 'uploads/syllabus');
+  },
+  filename: function(req, file, cb) {
+    cb(null, `${Date.now()}-${file.originalname}`);
   }
+});
+
+const uploadSyllabus = multer({ 
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed!'), false);
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+}).single('syllabusFile');
+
+// Add Syllabus with PDF
+exports.addSyllabus = async (req, res) => {
+  uploadSyllabus(req, res, async (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        return res.status(400).json({ msg: 'File upload error: ' + err.message });
+      }
+      return res.status(400).json({ msg: err.message });
+    }
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ msg: 'Please upload a PDF file' });
+      }
+
+      const {
+        subject,
+        class: classLevel,
+        semester
+      } = req.body;
+
+      const syllabus = new Syllabus({
+        subject,
+        class: classLevel,
+        semester,
+        pdfFile: {
+          filename: req.file.filename,
+          path: req.file.path,
+          originalname: req.file.originalname
+        },
+        uploadedBy: req.user.id
+      });
+
+      await syllabus.save();
+      res.status(201).json(syllabus);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Server Error');
+    }
+  });
 };
+
 
 // Add Study Material
 exports.addStudyMaterial = async (req, res) => {

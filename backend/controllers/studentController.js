@@ -354,16 +354,46 @@ exports.issueBook = async (req, res) => {
   }
 };
 
-// Get Syllabus
+// // Get Syllabus
+// exports.getSyllabus = async (req, res) => {
+//   try {
+//     const syllabus = await Syllabus.find().sort({ createdAt: -1 });
+//     res.json(syllabus);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send("Server Error");
+//   }
+// };
+
+
 exports.getSyllabus = async (req, res) => {
   try {
-    const syllabus = await Syllabus.find().sort({ createdAt: -1 });
+    const syllabus = await Syllabus.find()
+      .sort({ createdAt: -1 })
+      .populate('uploadedBy', 'name');
     res.json(syllabus);
   } catch (err) {
     console.error(err);
     res.status(500).send("Server Error");
   }
 };
+
+exports.downloadSyllabus = async (req, res) => {
+  try {
+    const syllabus = await Syllabus.findById(req.params.id);
+    
+    if (!syllabus) {
+      return res.status(404).json({ msg: 'Syllabus not found' });
+    }
+
+    const file = path.join(__dirname, '..', syllabus.pdfFile.path);
+    res.download(file, syllabus.pdfFile.originalname);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+};
+
 
 // Get Student Remarks
 exports.getRemarks = async (req, res) => {
