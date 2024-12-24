@@ -3,6 +3,8 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const roleAuth = require('../middleware/roleAuth');
 const teacherController = require('../controllers/teacherController');
+const { check } = require('express-validator');
+
 
 // router.post('/attendance', 
 //   [auth, roleAuth(['teacher'])], 
@@ -70,10 +72,30 @@ router.get('/homework/:homeworkId/submissions/:submissionId/download',
   teacherController.downloadHomeworkSubmission
 );
 
-router.post('/remarks', 
-  [auth, roleAuth(['teacher'])], 
+router.get(
+  '/students/:classLevel',
+  [auth, roleAuth(['teacher'])],
+  teacherController.getStudentsByClass
+);
+
+router.post(
+  '/remarks',
+  [
+    auth,
+    roleAuth(['teacher']),
+    [
+      check('subject', 'Subject is required').notEmpty(),
+      check('classLevel', 'Class level is required').notEmpty(),
+      check('students', 'Students data is required').isArray()
+    ]
+  ],
   teacherController.createRemarks
 );
+
+// router.post('/remarks', 
+//   [auth, roleAuth(['teacher'])], 
+//   teacherController.createRemarks
+// );
 
 router.post('/online-test', 
   [auth, roleAuth(['teacher'])], 

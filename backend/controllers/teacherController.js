@@ -513,44 +513,124 @@ exports.downloadHomeworkSubmission = async (req, res) => {
 // Create Remarks
 const mongoose = require('mongoose');
 
-exports.createRemarks = async (req, res) => {
+// exports.createRemarks = async (req, res) => {
+//   try {
+//     const { 
+//       student: studentId, 
+//       subject, 
+//       academicPerformance, 
+//       behaviorRemark, 
+//       overallComment,
+//       semester 
+//     } = req.body;
+
+//     // Validate ObjectId format
+//     if (!mongoose.Types.ObjectId.isValid(studentId)) {
+//       return res.status(400).json({ message: 'Invalid studentId format' });
+//     }
+
+//     const student = await User.findById(studentId);
+//     if (!student || student.role !== 'student') {
+//       return res.status(404).json({ message: 'Student not found' });
+//     }
+
+//     const remarks = new Remarks({
+//       student: studentId,
+//       teacher: req.user.id,
+//       subject,
+//       academicPerformance,
+//       behaviorRemark,
+//       overallComment,
+//       semester
+//     });
+
+//     await remarks.save();
+//     res.status(201).json(remarks);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
+
+exports.getStudentsByClass = async (req, res) => {
   try {
-    const { 
-      student: studentId, 
-      subject, 
-      academicPerformance, 
-      behaviorRemark, 
-      overallComment,
-      semester 
-    } = req.body;
-
-    // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(studentId)) {
-      return res.status(400).json({ message: 'Invalid studentId format' });
-    }
-
-    const student = await User.findById(studentId);
-    if (!student || student.role !== 'student') {
-      return res.status(404).json({ message: 'Student not found' });
-    }
-
-    const remarks = new Remarks({
-      student: studentId,
-      teacher: req.user.id,
-      subject,
-      academicPerformance,
-      behaviorRemark,
-      overallComment,
-      semester
-    });
-
-    await remarks.save();
-    res.status(201).json(remarks);
+    const { classLevel } = req.params;
+    
+    const students = await User.find({
+      role: 'student',
+      class: classLevel
+    }).select('name email class');
+    
+    res.json(students);
   } catch (err) {
     console.error(err);
     res.status(500).send('Server Error');
   }
 };
+
+exports.createRemarks = async (req, res) => {
+  try {
+    const {
+      students, // Array of student IDs and their remarks
+      subject,
+      classLevel
+    } = req.body;
+
+    // Validate class and subject
+    if (!classLevel || !subject) {
+      return res.status(400).json({ message: 'Class and subject are required' });
+    }
+
+    // Validate students array
+    if (!Array.isArray(students) || students.length === 0) {
+      return res.status(400).json({ message: 'Students data is required' });
+    }
+
+    const remarkPromises = students.map(async (studentData) => {
+      const {
+        studentId,
+        academicPerformance,
+        behaviorRemark,
+        overallComment
+      } = studentData;
+
+      // Validate ObjectId format
+      if (!mongoose.Types.ObjectId.isValid(studentId)) {
+        throw new Error(`Invalid studentId format for student: ${studentId}`);
+      }
+
+      // Verify student exists and belongs to the specified class
+      const student = await User.findOne({
+        _id: studentId,
+        role: 'student',
+        class: classLevel
+      });
+
+      if (!student) {
+        throw new Error(`Student not found or not in class ${classLevel}: ${studentId}`);
+      }
+
+      const remarks = new Remarks({
+        student: studentId,
+        teacher: req.user.id,
+        subject,
+        academicPerformance,
+        behaviorRemark,
+        overallComment
+      });
+
+      return remarks.save();
+    });
+
+    const savedRemarks = await Promise.all(remarkPromises);
+    res.status(201).json(savedRemarks);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message || 'Server Error' });
+  }
+};
+
 
 
 // Create Online Test
