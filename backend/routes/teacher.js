@@ -64,16 +64,31 @@ router.get('/homework/:homeworkId/submissions/:submissionId/download',
 //   teacherController.getStudentsByClass
 // );
 
-router.get('/students/:classLevel', auth, roleAuth(['teacher']), async (req, res) => {
-  try {
-      const students = await User.find({ 
-          role: 'student', 
-          class: req.params.classLevel 
-      }).select('_id name');
-      res.json(students);
-  } catch (err) {
-      res.status(500).json({ message: err.message });
-  }
+// router.get('/students/:classLevel', auth, roleAuth(['teacher']), async (req, res) => {
+//   try {
+//       const students = await User.find({ 
+//           role: 'student', 
+//           class: req.params.classLevel 
+//       }).select('_id name');
+//       res.json(students);
+//   } catch (err) {
+//       res.status(500).json({ message: err.message });
+//   }
+// });
+
+router.get('/students/:classLevel', auth, roleAuth(['teacher']), async (req, res) => { 
+  try { 
+      console.log('Requested class level:', req.params.classLevel);
+      const students = await User.find({  
+          role: 'student',  
+          class: req.params.classLevel  
+      }).select('_id name'); 
+      console.log('Found students:', students);
+      res.json(students); 
+  } catch (err) { 
+      console.error('Error fetching students:', err);
+      res.status(500).json({ message: err.message }); 
+  } 
 });
 
 router.post(
