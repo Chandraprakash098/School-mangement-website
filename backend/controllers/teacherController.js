@@ -7,6 +7,7 @@ const Remarks = require('../models/Remarks');
 const moment = require('moment');
 const multer = require('multer');
 const path = require('path');
+const LecturePeriod = require('../models/LecturePeriod')
 
 
 // exports.assignAttendance = async (req, res) => {

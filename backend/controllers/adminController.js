@@ -4,6 +4,7 @@ const Library = require('../models/Library');
 const  Syllabus = require('../models/Syllabus');
 const StudyMaterial = require('../models/StudyMaterial')
 const User = require('../models/User');
+const LecturePeriod= require('../models/LecturePeriod')
 
 // Add Book to Library
 exports.addBook = async (req, res) => {
@@ -413,6 +414,52 @@ exports.getAllTeachers = async (req, res) => {
 };
 
 // Assign lecture period
+// exports.assignLecturePeriod = async (req, res) => {
+//   try {
+//     const {
+//       teacherId,
+//       subject,
+//       class: className,
+//       dayOfWeek,
+//       startTime,
+//       endTime,
+//       room
+//     } = req.body;
+
+//     // Validate teacher exists
+//     const teacher = await User.findOne({ _id: teacherId, role: 'teacher' });
+//     if (!teacher) {
+//       return res.status(404).json({ message: 'Teacher not found' });
+//     }
+
+//     // Check for time conflicts
+//     const conflict = await LecturePeriod.checkConflict(teacherId, dayOfWeek, startTime, endTime);
+//     if (conflict) {
+//       return res.status(400).json({ 
+//         message: 'Time slot conflicts with an existing period',
+//         conflictingPeriod: conflict
+//       });
+//     }
+
+//     const lecturePeriod = new LecturePeriod({
+//       teacher: teacherId,
+//       subject,
+//       class: className,
+//       dayOfWeek,
+//       startTime,
+//       endTime,
+//       room,
+//       createdBy: req.user.id
+//     });
+
+//     await lecturePeriod.save();
+//     res.status(201).json(lecturePeriod);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: 'Server Error' });
+//   }
+// };
+
 exports.assignLecturePeriod = async (req, res) => {
   try {
     const {
@@ -425,15 +472,21 @@ exports.assignLecturePeriod = async (req, res) => {
       room
     } = req.body;
 
+    console.log("Request Body:", req.body);
+
     // Validate teacher exists
     const teacher = await User.findOne({ _id: teacherId, role: 'teacher' });
     if (!teacher) {
+      console.log("Teacher not found");
       return res.status(404).json({ message: 'Teacher not found' });
     }
+
+    console.log("Teacher Found:", teacher);
 
     // Check for time conflicts
     const conflict = await LecturePeriod.checkConflict(teacherId, dayOfWeek, startTime, endTime);
     if (conflict) {
+      console.log("Conflict Detected:", conflict);
       return res.status(400).json({ 
         message: 'Time slot conflicts with an existing period',
         conflictingPeriod: conflict
@@ -451,13 +504,16 @@ exports.assignLecturePeriod = async (req, res) => {
       createdBy: req.user.id
     });
 
+    console.log("Lecture Period to Save:", lecturePeriod);
+
     await lecturePeriod.save();
     res.status(201).json(lecturePeriod);
   } catch (err) {
-    console.error(err);
+    console.error("Error in assignLecturePeriod:", err);
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
 
 // Get teacher's lecture periods
 exports.getTeacherLecturePeriods = async (req, res) => {
