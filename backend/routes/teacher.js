@@ -126,4 +126,9 @@ router.get('/unevaluated-tests',
   teacherController.getUnevaluatedTests
 );
 
+router.get('/my-lecture-periods',
+  [auth, roleAuth(['teacher'])],
+  teacherController.getMyLecturePeriods
+);
+
 module.exports = router;

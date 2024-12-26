@@ -166,22 +166,30 @@ const uploadSyllabus = multer({
 
 exports.addSyllabus = async (req, res) => {
     uploadSyllabus(req, res, async (err) => {
+      console.log('Request Headers:', req.headers);
+        console.log('Request Body:', req.body);
+        console.log('Request File:', req.file);
         if (err) {
             if (err instanceof multer.MulterError) {
-                return res.status(400).json({ msg: 'File upload error: ' + err.message });
+                return res.status(400).json({ msg: 'File upload error: ' + err.message,code: 'UPLOAD_ERROR',
+                  details: err });
             }
-            return res.status(400).json({ msg: err.message });
+            return res.status(400).json({ msg: err.message,code: 'GENERAL_ERROR',
+              details: err });
         }
 
         try {
             const { subject, class: classLevel } = req.body;
             
             if (!subject || !classLevel) {
-                return res.status(400).json({ msg: 'Subject and class are required' });
+                return res.status(400).json({ msg: 'Subject and class are required',code: 'VALIDATION_ERROR',fields: {
+                  subject: !subject ? 'missing' : 'ok',
+                  class: !classLevel ? 'missing' : 'ok'
+              } });
             }
 
             if (!req.file) {
-                return res.status(400).json({ msg: 'Please upload a PDF file' });
+                return res.status(400).json({ msg: 'Please upload a PDF file',code: 'FILE_MISSING' });
             }
 
             const syllabus = new Syllabus({
@@ -194,12 +202,22 @@ exports.addSyllabus = async (req, res) => {
                 },
                 uploadedBy: req.user.id
             });
+            console.log('Saving syllabus:', syllabus);
+            const savedSyllabus = await syllabus.save();
+            console.log('Saved successfully:', savedSyllabus);
 
             await syllabus.save();
-            res.status(201).json(syllabus);
+            res.status(201).json({
+              msg: 'Syllabus uploaded successfully',
+              data: savedSyllabus
+          });
         } catch (err) {
             console.error(err);
-            res.status(500).send('Server Error');
+            res.status(500).json({
+              msg: 'Server Error',
+              code: 'SERVER_ERROR',
+              details: err.message
+          });
         }
     });
 };
@@ -376,5 +394,144 @@ exports.deleteUser = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send('Server Error');
+  }
+};
+
+
+
+
+exports.getAllTeachers = async (req, res) => {
+  try {
+    const teachers = await User.find({ role: 'teacher' })
+      .select('-password')
+      .sort({ name: 1 });
+    res.json(teachers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// Assign lecture period
+exports.assignLecturePeriod = async (req, res) => {
+  try {
+    const {
+      teacherId,
+      subject,
+      class: className,
+      dayOfWeek,
+      startTime,
+      endTime,
+      room
+    } = req.body;
+
+    // Validate teacher exists
+    const teacher = await User.findOne({ _id: teacherId, role: 'teacher' });
+    if (!teacher) {
+      return res.status(404).json({ message: 'Teacher not found' });
+    }
+
+    // Check for time conflicts
+    const conflict = await LecturePeriod.checkConflict(teacherId, dayOfWeek, startTime, endTime);
+    if (conflict) {
+      return res.status(400).json({ 
+        message: 'Time slot conflicts with an existing period',
+        conflictingPeriod: conflict
+      });
+    }
+
+    const lecturePeriod = new LecturePeriod({
+      teacher: teacherId,
+      subject,
+      class: className,
+      dayOfWeek,
+      startTime,
+      endTime,
+      room,
+      createdBy: req.user.id
+    });
+
+    await lecturePeriod.save();
+    res.status(201).json(lecturePeriod);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// Get teacher's lecture periods
+exports.getTeacherLecturePeriods = async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    
+    const periods = await LecturePeriod.find({ teacher: teacherId })
+      .populate('teacher', 'name email')
+      .sort({ dayOfWeek: 1, startTime: 1 });
+      
+    res.json(periods);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// Update lecture period
+exports.updateLecturePeriod = async (req, res) => {
+  try {
+    const { periodId } = req.params;
+    const updateData = req.body;
+    
+    if (updateData.startTime || updateData.endTime || updateData.dayOfWeek) {
+      const period = await LecturePeriod.findById(periodId);
+      const conflict = await LecturePeriod.checkConflict(
+        period.teacher,
+        updateData.dayOfWeek || period.dayOfWeek,
+        updateData.startTime || period.startTime,
+        updateData.endTime || period.endTime,
+        periodId
+      );
+      
+      if (conflict) {
+        return res.status(400).json({ 
+          message: 'Time slot conflicts with an existing period',
+          conflictingPeriod: conflict
+        });
+      }
+    }
+    
+    updateData.updatedAt = Date.now();
+    
+    const period = await LecturePeriod.findByIdAndUpdate(
+      periodId,
+      updateData,
+      { new: true }
+    ).populate('teacher', 'name email');
+    
+    if (!period) {
+      return res.status(404).json({ message: 'Lecture period not found' });
+    }
+    
+    res.json(period);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// Delete lecture period
+exports.deleteLecturePeriod = async (req, res) => {
+  try {
+    const { periodId } = req.params;
+    
+    const period = await LecturePeriod.findByIdAndDelete(periodId);
+    
+    if (!period) {
+      return res.status(404).json({ message: 'Lecture period not found' });
+    }
+    
+    res.json({ message: 'Lecture period deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
   }
 };

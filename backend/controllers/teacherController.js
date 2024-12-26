@@ -747,3 +747,25 @@ exports.evaluateOnlineTest = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+
+
+exports.getMyLecturePeriods = async (req, res) => {
+  try {
+    const periods = await LecturePeriod.find({ teacher: req.user.id })
+      .sort({ dayOfWeek: 1, startTime: 1 });
+    
+    // Group periods by day
+    const groupedPeriods = periods.reduce((acc, period) => {
+      if (!acc[period.dayOfWeek]) {
+        acc[period.dayOfWeek] = [];
+      }
+      acc[period.dayOfWeek].push(period);
+      return acc;
+    }, {});
+    
+    res.json(groupedPeriods);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};

@@ -43,4 +43,29 @@ router.delete('/users/:userId',
   adminController.deleteUser
 );
 
+router.get('/teachers',
+  [auth, roleAuth(['admin'])],
+  adminController.getAllTeachers
+);
+
+router.post('/lecture-periods',
+  [auth, roleAuth(['admin'])],
+  adminController.assignLecturePeriod
+);
+
+router.get('/lecture-periods/teacher/:teacherId',
+  [auth, roleAuth(['admin'])],
+  adminController.getTeacherLecturePeriods
+);
+
+router.put('/lecture-periods/:periodId',
+  [auth, roleAuth(['admin'])],
+  adminController.updateLecturePeriod
+);
+
+router.delete('/lecture-periods/:periodId',
+  [auth, roleAuth(['admin'])],
+  adminController.deleteLecturePeriod
+);
+
 module.exports = router;
