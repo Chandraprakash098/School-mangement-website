@@ -380,44 +380,39 @@ exports.getSyllabus = async (req, res) => {
 
 
 
-
 exports.downloadSyllabus = async (req, res) => {
   try {
     console.log('Download request for ID:', req.params.id);
-    const syllabus = await Syllabus.findById(req.params.id);
-    
+
+    const syllabus = await Syllabus.findById(req.params.id.trim());
+
     if (!syllabus) {
       console.log('Syllabus not found in database');
       return res.status(404).json({ msg: 'Syllabus not found' });
     }
 
-    // Normalize the path to handle both forward and backward slashes
+    // Normalize and resolve the path
     const normalizedPath = path.normalize(syllabus.pdfFile.path);
-    
-    // Construct absolute path - assuming uploads directory is at project root
-    const file = path.resolve(path.join(process.cwd(), normalizedPath));
-    
+    const windowsPath = normalizedPath.replace(/\//g, '\\');
+    const file = path.resolve(process.cwd(), windowsPath);
+
     console.log('Database path:', syllabus.pdfFile.path);
     console.log('Normalized path:', normalizedPath);
+    console.log('Windows path:', windowsPath);
     console.log('Full file path:', file);
     console.log('Current directory:', process.cwd());
     console.log('File exists:', fs.existsSync(file));
-    
-    // Check if file exists
+
     if (!fs.existsSync(file)) {
       console.error('File not found at path:', file);
       return res.status(404).json({ msg: 'File not found on server' });
     }
 
-    // Send the file
     res.download(file, syllabus.pdfFile.originalname, (err) => {
       if (err) {
         console.error('Download error:', err);
         if (!res.headersSent) {
-          return res.status(500).json({ 
-            msg: 'Error downloading file', 
-            error: err.message 
-          });
+          return res.status(500).json({ msg: 'Error downloading file', error: err.message });
         }
       }
     });
@@ -425,13 +420,11 @@ exports.downloadSyllabus = async (req, res) => {
   } catch (err) {
     console.error('Server error:', err);
     if (!res.headersSent) {
-      res.status(500).json({ 
-        msg: 'Server Error', 
-        error: err.message 
-      });
+      res.status(500).json({ msg: 'Server Error', error: err.message });
     }
   }
 };
+
 
 
 // exports.downloadSyllabus = async (req, res) => {

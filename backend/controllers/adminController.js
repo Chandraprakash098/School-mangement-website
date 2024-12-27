@@ -142,13 +142,34 @@ exports.addBook = async (req, res) => {
 const multer = require('multer');
 const path = require('path');
 
+// const storage = multer.diskStorage({
+//     destination: function(req, file, cb) {
+//         cb(null, 'uploads/syllabus');
+//     },
+//     filename: function(req, file, cb) {
+//         cb(null, `${Date.now()}-${file.originalname}`);
+//     }
+// });
+
 const storage = multer.diskStorage({
-    destination: function(req, file, cb) {
-        cb(null, 'uploads/syllabus');
-    },
-    filename: function(req, file, cb) {
-        cb(null, `${Date.now()}-${file.originalname}`);
+  destination: (req, file, cb) => {
+    // Ensure the 'uploads/syllabus' folder exists
+    const uploadPath = path.join(process.cwd(), 'uploads', 'syllabus');
+    
+    // Ensure the directory exists, create it if not
+    const fs = require('fs');
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
     }
+
+    // Set the destination folder for the uploaded file
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    // Generate a unique filename using timestamp and original name
+    const uniqueName = `${Date.now()}-${file.originalname}`;
+    cb(null, uniqueName);
+  }
 });
 
 const uploadSyllabus = multer({
