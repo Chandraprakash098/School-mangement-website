@@ -378,6 +378,22 @@ exports.getSyllabus = async (req, res) => {
   }
 };
 
+// exports.downloadSyllabus = async (req, res) => {
+//   try {
+//     const syllabus = await Syllabus.findById(req.params.id);
+    
+//     if (!syllabus) {
+//       return res.status(404).json({ msg: 'Syllabus not found' });
+//     }
+
+//     const file = path.join(__dirname, '..', syllabus.pdfFile.path);
+//     res.download(file, syllabus.pdfFile.originalname);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send('Server Error');
+//   }
+// };
+
 exports.downloadSyllabus = async (req, res) => {
   try {
     const syllabus = await Syllabus.findById(req.params.id);
@@ -387,10 +403,33 @@ exports.downloadSyllabus = async (req, res) => {
     }
 
     const file = path.join(__dirname, '..', syllabus.pdfFile.path);
-    res.download(file, syllabus.pdfFile.originalname);
+    
+    // Check if file exists
+    try {
+      await fs.access(file);
+    } catch (error) {
+      console.error('File access error:', error);
+      return res.status(404).json({ msg: 'File not found on server' });
+    }
+
+    // Log the file path for debugging
+    console.log('Attempting to download file:', file);
+    
+    res.download(file, syllabus.pdfFile.originalname, (err) => {
+      if (err) {
+        console.error('Download error:', err);
+        // Check if headers have already been sent
+        if (!res.headersSent) {
+          res.status(500).json({ msg: 'Error downloading file' });
+        }
+      }
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).send('Server Error');
+    console.error('Server error:', err);
+    // Check if headers have already been sent
+    if (!res.headersSent) {
+      res.status(500).json({ msg: 'Server Error', error: err.message });
+    }
   }
 };
 
