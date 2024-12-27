@@ -378,6 +378,8 @@ exports.getSyllabus = async (req, res) => {
   }
 };
 
+
+
 // exports.downloadSyllabus = async (req, res) => {
 //   try {
 //     const syllabus = await Syllabus.findById(req.params.id);
@@ -387,38 +389,72 @@ exports.getSyllabus = async (req, res) => {
 //     }
 
 //     const file = path.join(__dirname, '..', syllabus.pdfFile.path);
-//     res.download(file, syllabus.pdfFile.originalname);
+    
+//     // Check if file exists using synchronous fs.existsSync
+//     if (!fs.existsSync(file)) {
+//       console.error('File not found:', file);
+//       return res.status(404).json({ msg: 'File not found on server' });
+//     }
+
+//     // Log the file path for debugging
+//     console.log('Attempting to download file:', file);
+    
+//     // Send the file
+//     res.download(file, syllabus.pdfFile.originalname, (err) => {
+//       if (err) {
+//         console.error('Download error:', err);
+//         if (!res.headersSent) {
+//           return res.status(500).json({ msg: 'Error downloading file', error: err.message });
+//         }
+//       }
+//     });
+
 //   } catch (err) {
-//     console.error(err);
-//     res.status(500).send('Server Error');
+//     console.error('Server error:', err);
+//     if (!res.headersSent) {
+//       res.status(500).json({ msg: 'Server Error', error: err.message });
+//     }
 //   }
 // };
 
+
 exports.downloadSyllabus = async (req, res) => {
   try {
+    console.log('Download request for ID:', req.params.id);
     const syllabus = await Syllabus.findById(req.params.id);
     
     if (!syllabus) {
+      console.log('Syllabus not found in database');
       return res.status(404).json({ msg: 'Syllabus not found' });
     }
 
-    const file = path.join(__dirname, '..', syllabus.pdfFile.path);
+    // Normalize the path to handle both forward and backward slashes
+    const normalizedPath = path.normalize(syllabus.pdfFile.path);
     
-    // Check if file exists using synchronous fs.existsSync
+    // Construct absolute path - assuming uploads directory is at project root
+    const file = path.resolve(path.join(process.cwd(), normalizedPath));
+    
+    console.log('Database path:', syllabus.pdfFile.path);
+    console.log('Normalized path:', normalizedPath);
+    console.log('Full file path:', file);
+    console.log('Current directory:', process.cwd());
+    console.log('File exists:', fs.existsSync(file));
+    
+    // Check if file exists
     if (!fs.existsSync(file)) {
-      console.error('File not found:', file);
+      console.error('File not found at path:', file);
       return res.status(404).json({ msg: 'File not found on server' });
     }
 
-    // Log the file path for debugging
-    console.log('Attempting to download file:', file);
-    
     // Send the file
     res.download(file, syllabus.pdfFile.originalname, (err) => {
       if (err) {
         console.error('Download error:', err);
         if (!res.headersSent) {
-          return res.status(500).json({ msg: 'Error downloading file', error: err.message });
+          return res.status(500).json({ 
+            msg: 'Error downloading file', 
+            error: err.message 
+          });
         }
       }
     });
@@ -426,7 +462,10 @@ exports.downloadSyllabus = async (req, res) => {
   } catch (err) {
     console.error('Server error:', err);
     if (!res.headersSent) {
-      res.status(500).json({ msg: 'Server Error', error: err.message });
+      res.status(500).json({ 
+        msg: 'Server Error', 
+        error: err.message 
+      });
     }
   }
 };
