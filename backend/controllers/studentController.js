@@ -380,43 +380,6 @@ exports.getSyllabus = async (req, res) => {
 
 
 
-// exports.downloadSyllabus = async (req, res) => {
-//   try {
-//     const syllabus = await Syllabus.findById(req.params.id);
-    
-//     if (!syllabus) {
-//       return res.status(404).json({ msg: 'Syllabus not found' });
-//     }
-
-//     const file = path.join(__dirname, '..', syllabus.pdfFile.path);
-    
-//     // Check if file exists using synchronous fs.existsSync
-//     if (!fs.existsSync(file)) {
-//       console.error('File not found:', file);
-//       return res.status(404).json({ msg: 'File not found on server' });
-//     }
-
-//     // Log the file path for debugging
-//     console.log('Attempting to download file:', file);
-    
-//     // Send the file
-//     res.download(file, syllabus.pdfFile.originalname, (err) => {
-//       if (err) {
-//         console.error('Download error:', err);
-//         if (!res.headersSent) {
-//           return res.status(500).json({ msg: 'Error downloading file', error: err.message });
-//         }
-//       }
-//     });
-
-//   } catch (err) {
-//     console.error('Server error:', err);
-//     if (!res.headersSent) {
-//       res.status(500).json({ msg: 'Server Error', error: err.message });
-//     }
-//   }
-// };
-
 
 exports.downloadSyllabus = async (req, res) => {
   try {
@@ -469,6 +432,44 @@ exports.downloadSyllabus = async (req, res) => {
     }
   }
 };
+
+
+// exports.downloadSyllabus = async (req, res) => {
+//   try {
+//     console.log('Download request for ID:', req.params.id);
+
+//     const syllabus = await Syllabus.findById(req.params.id);
+//     if (!syllabus) {
+//       console.log('Syllabus not found in database');
+//       return res.status(404).json({ msg: 'Syllabus not found' });
+//     }
+
+//     const file = path.join(__dirname, '..', syllabus.pdfFile.path);
+//     console.log('Database path:', syllabus.pdfFile.path);
+//     console.log('Resolved path:', file);
+//     console.log('File exists:', fs.existsSync(file));
+
+//     if (!fs.existsSync(file)) {
+//       console.error('File not found at path:', file);
+//       return res.status(404).json({ msg: 'File not found on server' });
+//     }
+
+//     res.download(file, syllabus.pdfFile.originalname, (err) => {
+//       if (err) {
+//         console.error('Download error:', err);
+//         if (!res.headersSent) {
+//           res.status(500).json({ msg: 'Error downloading file', error: err.message });
+//         }
+//       }
+//     });
+//   } catch (err) {
+//     console.error('Server error:', err);
+//     if (!res.headersSent) {
+//       res.status(500).json({ msg: 'Server Error', error: err.message });
+//     }
+//   }
+// };
+
 
 
 // Get Student Remarks
