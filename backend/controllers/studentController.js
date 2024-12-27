@@ -404,29 +404,27 @@ exports.downloadSyllabus = async (req, res) => {
 
     const file = path.join(__dirname, '..', syllabus.pdfFile.path);
     
-    // Check if file exists
-    try {
-      await fs.access(file);
-    } catch (error) {
-      console.error('File access error:', error);
+    // Check if file exists using synchronous fs.existsSync
+    if (!fs.existsSync(file)) {
+      console.error('File not found:', file);
       return res.status(404).json({ msg: 'File not found on server' });
     }
 
     // Log the file path for debugging
     console.log('Attempting to download file:', file);
     
+    // Send the file
     res.download(file, syllabus.pdfFile.originalname, (err) => {
       if (err) {
         console.error('Download error:', err);
-        // Check if headers have already been sent
         if (!res.headersSent) {
-          res.status(500).json({ msg: 'Error downloading file' });
+          return res.status(500).json({ msg: 'Error downloading file', error: err.message });
         }
       }
     });
+
   } catch (err) {
     console.error('Server error:', err);
-    // Check if headers have already been sent
     if (!res.headersSent) {
       res.status(500).json({ msg: 'Server Error', error: err.message });
     }
