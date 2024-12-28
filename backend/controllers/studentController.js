@@ -698,24 +698,13 @@ exports.getStudentProfile = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    // Prepare the profile response
-    // const profileResponse = {
-    //   name: user.name,
-    //   email: user.email,
-    //   Profession: user.role,
-    // };
+    
 
+    // Prepare the profile response
     const profileResponse = {
       name: user.name,
       email: user.email,
-      mobile: user.mobile,
-      class: user.class,
-      fatherName: user.fatherName,
-      motherName: user.motherName,
-      address: user.address,
-      profileImage: user.profileImage,
-      enrollmentDate: user.enrollmentDate || "N/A", // Example field
-      lastUpdated: user.updatedAt || "N/A", // Example field
+      Profession: user.role,
     };
 
     res.json(profileResponse);
@@ -991,3 +980,12 @@ exports.registerForSportsEvent = async (req, res) => {
     res.status(500).json({ message: 'Server Error', error: err.message });
   }
 };
+
+
+
+// Prepare the profile response
+    // const profileResponse = {
+    //   name: user.name,
+    //   email: user.email,
+    //   Profession: user.role,
+    // };
