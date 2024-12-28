@@ -699,10 +699,23 @@ exports.getStudentProfile = async (req, res) => {
     }
 
     // Prepare the profile response
+    // const profileResponse = {
+    //   name: user.name,
+    //   email: user.email,
+    //   Profession: user.role,
+    // };
+
     const profileResponse = {
       name: user.name,
       email: user.email,
-      Profession: user.role,
+      mobile: user.mobile,
+      class: user.class,
+      fatherName: user.fatherName,
+      motherName: user.motherName,
+      address: user.address,
+      profileImage: user.profileImage,
+      enrollmentDate: user.enrollmentDate || "N/A", // Example field
+      lastUpdated: user.updatedAt || "N/A", // Example field
     };
 
     res.json(profileResponse);
