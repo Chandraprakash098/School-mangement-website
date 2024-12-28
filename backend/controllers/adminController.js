@@ -184,6 +184,30 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
+const storages = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/profiles/');  // Make sure this directory exists
+  },
+  filename: function (req, file, cb) {
+    cb(null, 'profile-' + Date.now() + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storages: storages,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: function (req, file, cb) {
+    const filetypes = /jpeg|jpg|png/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error('Error: Images only!'));
+  }
+}).single('profileImage');
+
 // controllers/adminController.js
 exports.createUser = async (req, res) => {
   try {
@@ -191,6 +215,7 @@ exports.createUser = async (req, res) => {
       name, 
       email, 
       password, 
+      mobile,
       role, 
       class: userClass,
       fatherName,
@@ -209,11 +234,13 @@ exports.createUser = async (req, res) => {
       name,
       email,
       password,
+      mobile,
       role,
       class: userClass,
       fatherName,
       motherName,
-      address
+      address,
+      profileImage: req.file ? `/uploads/profiles/${req.file.filename}` : ''
     });
 
     // Hash password
