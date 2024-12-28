@@ -10,72 +10,7 @@ const path = require('path');
 const LecturePeriod = require('../models/LecturePeriod')
 
 
-// exports.assignAttendance = async (req, res) => {
-//   try {
-//     const { 
-//       students, 
-//       subject, 
-//       class: studentClass, 
-//       date 
-//     } = req.body;
 
-//     // Validate input
-//     if (!students || !Array.isArray(students) || students.length === 0) {
-//       return res.status(400).json({ message: 'No students provided' });
-//     }
-
-//     // Convert date to a Date object if it's a valid string
-//     const attendanceDate = date ? new Date(date) : new Date();
-//     if (isNaN(attendanceDate.getTime())) {
-//       return res.status(400).json({ message: 'Invalid date format' });
-//     }
-
-//     // Prepare bulk write operations
-//     const bulkOperations = students.map(student => ({
-//       student: student.id, // Make sure this matches the MongoDB ObjectId
-//       subject,
-//       class: studentClass,
-//       date: attendanceDate,
-//       status: student.status || 'absent', // Default to 'absent' if no status provided
-//       teacher: req.user.id,
-//       year: attendanceDate.getFullYear(),
-//       month: attendanceDate.getMonth() + 1, // January is 0, December is 11
-//     }));
-
-//     // Perform bulk insert
-//     const attendanceRecords = await Attendance.insertMany(bulkOperations);
-
-//     res.status(201).json({
-//       message: 'Attendance assigned successfully',
-//       recordsCreated: attendanceRecords.length,
-//     });
-//   } catch (err) {
-//     console.error('Attendance Assignment Error:', err);
-//     res.status(500).json({
-//       message: 'Server Error',
-//       error: err.message
-//     });
-//   }
-// };
-
-
-// // Get Students for Attendance Assignment
-// exports.getStudentsForAttendance = async (req, res) => {
-//   try {
-//     const { class: studentClass } = req.query;
-
-//     // Find all students of the specified class
-//     const students = await User.find({
-//       role: 'student',
-//       class: studentClass
-//     }).select('name _id');
-
-//     res.json(students);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send('Server Error');
-//   }
-// };
 
 
 exports.getStudentsForAttendance = async (req, res) => {
@@ -144,90 +79,6 @@ exports.checkAttendanceExists = async (req, res) => {
 
 
 
-// exports.assignAttendance = async (req, res) => {
-//   try {
-//       const { students, subject, class: studentClass, date } = req.body;
-
-//       // Validate input
-//       if (!students || !Array.isArray(students) || students.length === 0) {
-//           return res.status(400).json({ message: 'No students provided' });
-//       }
-
-//       if (!subject || !studentClass || !date) {
-//           return res.status(400).json({ message: 'Subject, class and date are required' });
-//       }
-
-//       // Convert date string to Date object
-//       const attendanceDate = new Date(date);
-//       if (isNaN(attendanceDate.getTime())) {
-//           return res.status(400).json({ message: 'Invalid date format' });
-//       }
-
-//       // Filter out invalid student IDs
-//       const validStudents = students.filter(s => s.id && s.id.trim().length > 0);
-      
-//       if (validStudents.length === 0) {
-//           return res.status(400).json({ message: 'No valid student IDs provided' });
-//       }
-
-//       // Check if attendance already exists
-//       const startOfDay = new Date(attendanceDate);
-//       startOfDay.setHours(0, 0, 0, 0);
-//       const endOfDay = new Date(attendanceDate);
-//       endOfDay.setHours(23, 59, 59, 999);
-
-//       const existingAttendance = await Attendance.findOne({
-//           class: studentClass,
-//           subject,
-//           date: {
-//               $gte: startOfDay,
-//               $lte: endOfDay
-//           }
-//       });
-
-//       if (existingAttendance) {
-//           return res.status(409).json({ message: 'Attendance already exists for this date' });
-//       }
-
-//       // Validate all students exist
-//       const studentIds = validStudents.map(s => s.id);
-//       const existingStudents = await User.find({
-//           _id: { $in: studentIds },
-//           role: 'student',
-//           class: studentClass
-//       });
-
-//       if (existingStudents.length !== studentIds.length) {
-//           return res.status(400).json({ message: 'Some student IDs are invalid' });
-//       }
-
-//       // Create attendance records
-//       const attendanceRecords = validStudents.map(student => ({
-//           student: student.id,
-//           subject,
-//           class: studentClass,
-//           date: attendanceDate,
-//           status: student.status.toLowerCase(),
-//           teacher: req.user._id, // Make sure to use _id instead of id
-//           year: attendanceDate.getFullYear(),
-//           month: attendanceDate.getMonth() + 1,
-//       }));
-
-//       // Perform bulk insert
-//       await Attendance.insertMany(attendanceRecords);
-
-//       res.status(201).json({
-//           message: 'Attendance submitted successfully',
-//           recordsCreated: attendanceRecords.length
-//       });
-//   } catch (err) {
-//       console.error('Attendance Assignment Error:', err);
-//       res.status(500).json({
-//           message: 'Server Error',
-//           error: err.message
-//       });
-//   }
-// };
 
 
 exports.assignAttendance = async (req, res) => {
@@ -418,6 +269,8 @@ exports.createHomework = async (req, res) => {
       });
 
       await homework.save();
+
+      
       res.status(201).json({
         message: "Homework assigned successfully",
         homework,
@@ -514,44 +367,6 @@ exports.downloadHomeworkSubmission = async (req, res) => {
 // Create Remarks
 const mongoose = require('mongoose');
 
-// exports.createRemarks = async (req, res) => {
-//   try {
-//     const { 
-//       student: studentId, 
-//       subject, 
-//       academicPerformance, 
-//       behaviorRemark, 
-//       overallComment,
-//       semester 
-//     } = req.body;
-
-//     // Validate ObjectId format
-//     if (!mongoose.Types.ObjectId.isValid(studentId)) {
-//       return res.status(400).json({ message: 'Invalid studentId format' });
-//     }
-
-//     const student = await User.findById(studentId);
-//     if (!student || student.role !== 'student') {
-//       return res.status(404).json({ message: 'Student not found' });
-//     }
-
-//     const remarks = new Remarks({
-//       student: studentId,
-//       teacher: req.user.id,
-//       subject,
-//       academicPerformance,
-//       behaviorRemark,
-//       overallComment,
-//       semester
-//     });
-
-//     await remarks.save();
-//     res.status(201).json(remarks);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send('Server Error');
-//   }
-// };
 
 
 exports.getStudentsByClass = async (req, res) => {

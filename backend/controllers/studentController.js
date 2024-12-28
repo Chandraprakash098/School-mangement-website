@@ -65,18 +65,6 @@ exports.getAllAttendance = async (req, res) => {
   }
 };
 
-// Configure multer for PDF upload
-// const storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     cb(null, "uploads/homework/"); // Make sure this directory exists
-//   },
-//   filename: function (req, file, cb) {
-//     cb(
-//       null,
-//       `homework-${req.user.id}-${Date.now()}${path.extname(file.originalname)}`
-//     );
-//   },
-// });
 
 
 const storage = multer.diskStorage({
@@ -149,12 +137,7 @@ exports.downloadHomework = async (req, res) => {
       });
     }
 
-    // Verify student's class matches homework's assigned class
-    // if (homework.studentClass !== user.class) {
-    //   return res.status(403).json({
-    //     message: "This homework is not assigned to your class"
-    //   });
-    // }
+    
 
     // Normalize the path
     const normalizedPath = homework.homeworkPdf.replace(/\\/g, '/');
@@ -354,16 +337,7 @@ exports.issueBook = async (req, res) => {
   }
 };
 
-// // Get Syllabus
-// exports.getSyllabus = async (req, res) => {
-//   try {
-//     const syllabus = await Syllabus.find().sort({ createdAt: -1 });
-//     res.json(syllabus);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send("Server Error");
-//   }
-// };
+
 
 
 exports.getSyllabus = async (req, res) => {
@@ -427,42 +401,6 @@ exports.downloadSyllabus = async (req, res) => {
 
 
 
-// exports.downloadSyllabus = async (req, res) => {
-//   try {
-//     console.log('Download request for ID:', req.params.id);
-
-//     const syllabus = await Syllabus.findById(req.params.id);
-//     if (!syllabus) {
-//       console.log('Syllabus not found in database');
-//       return res.status(404).json({ msg: 'Syllabus not found' });
-//     }
-
-//     const file = path.join(__dirname, '..', syllabus.pdfFile.path);
-//     console.log('Database path:', syllabus.pdfFile.path);
-//     console.log('Resolved path:', file);
-//     console.log('File exists:', fs.existsSync(file));
-
-//     if (!fs.existsSync(file)) {
-//       console.error('File not found at path:', file);
-//       return res.status(404).json({ msg: 'File not found on server' });
-//     }
-
-//     res.download(file, syllabus.pdfFile.originalname, (err) => {
-//       if (err) {
-//         console.error('Download error:', err);
-//         if (!res.headersSent) {
-//           res.status(500).json({ msg: 'Error downloading file', error: err.message });
-//         }
-//       }
-//     });
-//   } catch (err) {
-//     console.error('Server error:', err);
-//     if (!res.headersSent) {
-//       res.status(500).json({ msg: 'Server Error', error: err.message });
-//     }
-//   }
-// };
-
 
 
 // Get Student Remarks
@@ -489,16 +427,6 @@ exports.getStudyMaterial = async (req, res) => {
   }
 };
 
-// // Get Transport Details
-// exports.getTransportDetails = async (req, res) => {
-//   try {
-//     const transportDetails = await Transport.find({ student: req.user.id });
-//     res.json(transportDetails);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send('Server Error');
-//   }
-// };
 
 // Return Library Book
 exports.returnBook = async (req, res) => {
@@ -882,3 +810,5 @@ exports.requestBookIssue = async (req, res) => {
     res.status(500).send("Server Error");
   }
 };
+
+

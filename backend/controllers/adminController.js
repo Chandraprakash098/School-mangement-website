@@ -40,116 +40,12 @@ exports.addBook = async (req, res) => {
   }
 };
 
-// // Add Syllabus
-// exports.addSyllabus = async (req, res) => {
-//   try {
-//     const { 
-//       subject, 
-//       class: classLevel, 
-//       semester, 
-//       topics, 
-//       recommendedBooks,
-//       additionalResources
-//     } = req.body;
-
-//     const syllabus = new Syllabus({
-//       subject,
-//       class: classLevel,
-//       semester,
-//       topics,
-//       recommendedBooks,
-//       additionalResources
-//     });
-
-//     await syllabus.save();
-//     res.status(201).json(syllabus);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send('Server Error');
-//   }
-// };
-
-
-// const multer = require('multer');
-// const path = require('path');
-
-// const storage = multer.diskStorage({
-//   destination: function(req, file, cb) {
-//     cb(null, 'uploads/syllabus');
-//   },
-//   filename: function(req, file, cb) {
-//     cb(null, `${Date.now()}-${file.originalname}`);
-//   }
-// });
-
-// const uploadSyllabus = multer({ 
-//   storage: storage,
-//   fileFilter: (req, file, cb) => {
-//     if (file.mimetype === 'application/pdf') {
-//       cb(null, true);
-//     } else {
-//       cb(new Error('Only PDF files are allowed!'), false);
-//     }
-//   },
-//   limits: {
-//     fileSize: 5 * 1024 * 1024 // 5MB limit
-//   }
-// }).single('syllabusFile');
-
-// // Add Syllabus with PDF
-// exports.addSyllabus = async (req, res) => {
-//   uploadSyllabus(req, res, async (err) => {
-//     if (err) {
-//       if (err instanceof multer.MulterError) {
-//         return res.status(400).json({ msg: 'File upload error: ' + err.message });
-//       }
-//       return res.status(400).json({ msg: err.message });
-//     }
-
-//     try {
-//       if (!req.file) {
-//         return res.status(400).json({ msg: 'Please upload a PDF file' });
-//       }
-
-//       const {
-//         subject,
-//         class: classLevel,
-//         semester
-//       } = req.body;
-
-//       const syllabus = new Syllabus({
-//         subject,
-//         class: classLevel,
-//         semester,
-//         pdfFile: {
-//           filename: req.file.filename,
-//           path: req.file.path,
-//           originalname: req.file.originalname
-//         },
-//         uploadedBy: req.user.id
-//       });
-
-//       await syllabus.save();
-//       res.status(201).json(syllabus);
-//     } catch (err) {
-//       console.error(err);
-//       res.status(500).send('Server Error');
-//     }
-//   });
-// };
 
 
 const multer = require('multer');
 const path = require('path');
 
-// const storage = multer.diskStorage({
-//     destination: function(req, file, cb) {
-//         cb(null, 'uploads/syllabus');
-//     },
-//     filename: function(req, file, cb) {
-//         cb(null, `${Date.now()}-${file.originalname}`);
-//     }
-// });
+
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -229,6 +125,7 @@ exports.addSyllabus = async (req, res) => {
             console.log('Saved successfully:', savedSyllabus);
 
             await syllabus.save();
+
             res.status(201).json({
               msg: 'Syllabus uploaded successfully',
               data: savedSyllabus
@@ -285,43 +182,6 @@ exports.getAllUsers = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
-
-// Create User (Admin can create users)
-// exports.createUser = async (req, res) => {
-//   try {
-//     const { name, email, password, role } = req.body;
-
-//     // Check if user already exists
-//     let user = await User.findOne({ email });
-//     if (user) {
-//       return res.status(400).json({ message: 'User already exists' });
-//     }
-
-//     // Create new user
-//     user = new User({
-//       name,
-//       email,
-//       password,
-//       role
-//     });
-
-//     // Hash password
-//     const salt = await bcrypt.genSalt(10);
-//     user.password = await bcrypt.hash(password, salt);
-
-//     await user.save();
-
-//     // Remove password from response
-//     const userResponse = user.toObject();
-//     delete userResponse.password;
-
-//     res.status(201).json(userResponse);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send('Server Error');
-//   }
-// };
-
 
 // controllers/adminController.js
 exports.createUser = async (req, res) => {
@@ -434,52 +294,7 @@ exports.getAllTeachers = async (req, res) => {
   }
 };
 
-// Assign lecture period
-// exports.assignLecturePeriod = async (req, res) => {
-//   try {
-//     const {
-//       teacherId,
-//       subject,
-//       class: className,
-//       dayOfWeek,
-//       startTime,
-//       endTime,
-//       room
-//     } = req.body;
 
-//     // Validate teacher exists
-//     const teacher = await User.findOne({ _id: teacherId, role: 'teacher' });
-//     if (!teacher) {
-//       return res.status(404).json({ message: 'Teacher not found' });
-//     }
-
-//     // Check for time conflicts
-//     const conflict = await LecturePeriod.checkConflict(teacherId, dayOfWeek, startTime, endTime);
-//     if (conflict) {
-//       return res.status(400).json({ 
-//         message: 'Time slot conflicts with an existing period',
-//         conflictingPeriod: conflict
-//       });
-//     }
-
-//     const lecturePeriod = new LecturePeriod({
-//       teacher: teacherId,
-//       subject,
-//       class: className,
-//       dayOfWeek,
-//       startTime,
-//       endTime,
-//       room,
-//       createdBy: req.user.id
-//     });
-
-//     await lecturePeriod.save();
-//     res.status(201).json(lecturePeriod);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: 'Server Error' });
-//   }
-// };
 
 exports.assignLecturePeriod = async (req, res) => {
   try {

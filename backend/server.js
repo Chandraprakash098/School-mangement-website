@@ -3,14 +3,17 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
 
+
 // Load environment variables
 dotenv.config();
 
 const app = express();
 
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
@@ -19,6 +22,8 @@ mongoose.connect(process.env.MONGODB_URI, {
 })
 .then(() => console.log('MongoDB Connected Successfully'))
 .catch((err) => console.error('MongoDB Connection Error:', err));
+
+
 
 
 // Import Routes
@@ -31,6 +36,7 @@ const accountRoutes = require('./routes/account');
 const librarianRoutes = require('./routes/librarianRoutes')
 
 
+
 // Use Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -39,6 +45,7 @@ app.use('/api/teacher', teacherRoutes);
 app.use('/api/transport', transportRoutes);
 app.use('/api/account', accountRoutes);
 app.use('/api/librarian', librarianRoutes);
+
 
 
 // Error Handling Middleware
@@ -55,3 +62,6 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+
+
