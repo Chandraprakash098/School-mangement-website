@@ -209,6 +209,100 @@ exports.getHomeworkDetails = async (req, res) => {
 };
 
 // Submit homework with PDF
+// exports.submitHomework = async (req, res) => {
+//   // Use upload.single middleware directly in the route handler
+//   upload.single("homeworkPdf")(req, res, async (uploadErr) => {
+//     // First, handle any multer upload errors
+//     if (uploadErr) {
+//       return res.status(400).json({ 
+//         message: "File upload error", 
+//         error: uploadErr.message 
+//       });
+//     }
+
+//     try {
+//       // Extract homework ID from request params
+//       const { homeworkId } = req.params;
+
+//       // Detailed logging for debugging
+//       console.log("User ID from Token:", req.user.id);
+//       console.log("Received Homework ID:", homeworkId);
+//       console.log("Uploaded File:", req.file);
+
+//       // Validate homework ID
+//       if (!mongoose.Types.ObjectId.isValid(homeworkId)) {
+//         return res.status(400).json({
+//           message: "Invalid homework ID",
+//           details: `Received ID: ${homeworkId}`
+//         });
+//       }
+
+//       // Find the homework
+//       const homework = await Homework.findById(homeworkId);
+//       if (!homework) {
+//         return res.status(404).json({ 
+//           message: "Homework not found",
+//           details: `No homework found with ID: ${homeworkId}`
+//         });
+//       }
+
+//       // Verify the homework is for the student's class
+//       const user = await User.findById(req.user.id);
+//       if (homework.studentClass !== user.class) {
+//         return res.status(403).json({ 
+//           message: "Homework not assigned to your class" 
+//         });
+//       }
+
+//       // Check due date
+//       if (new Date() > homework.dueDate) {
+//         return res.status(400).json({ 
+//           message: "Homework submission is past due date" 
+//         });
+//       }
+
+//       // Validate file upload
+//       if (!req.file) {
+//         return res.status(400).json({ 
+//           message: "PDF file is required" 
+//         });
+//       }
+
+//       // Remove previous submission if exists
+//       homework.submissions = homework.submissions.filter(
+//         (submission) => submission.student.toString() !== req.user.id
+//       );
+
+//       // Add new submission
+//       homework.submissions.push({
+//         student: req.user.id,
+//         // pdfUrl: req.file.path,
+//         pdfUrl: req.file.path.replace(/\\/g, '/'),
+//         submittedAt: new Date()
+//       });
+
+//       // Save the updated homework
+//       await homework.save();
+
+//       res.json({
+//         message: "Homework submitted successfully",
+//         submission: {
+//           pdfUrl: req.file.path,
+//           submittedAt: new Date()
+//         }
+//       });
+
+//     } catch (err) {
+//       console.error("Homework Submission Error:", err);
+//       res.status(500).json({ 
+//         message: "Server Error", 
+//         error: err.message 
+//       });
+//     }
+//   });
+// };
+
+
 exports.submitHomework = async (req, res) => {
   // Use upload.single middleware directly in the route handler
   upload.single("homeworkPdf")(req, res, async (uploadErr) => {
@@ -246,9 +340,35 @@ exports.submitHomework = async (req, res) => {
         });
       }
 
+      // Check if student has already submitted
+      const existingSubmission = homework.submissions.find(
+        submission => submission.student.toString() === req.user.id
+      );
+
+      if (existingSubmission) {
+        // If there's an uploaded file, delete it since we won't be using it
+        if (req.file) {
+          fs.unlink(req.file.path, (err) => {
+            if (err) console.error('Error deleting unused file:', err);
+          });
+        }
+        
+        return res.status(400).json({ 
+          message: "You have already submitted this homework",
+          submissionDate: existingSubmission.submittedAt
+        });
+      }
+
       // Verify the homework is for the student's class
       const user = await User.findById(req.user.id);
       if (homework.studentClass !== user.class) {
+        // Clean up uploaded file if it exists
+        if (req.file) {
+          fs.unlink(req.file.path, (err) => {
+            if (err) console.error('Error deleting unused file:', err);
+          });
+        }
+        
         return res.status(403).json({ 
           message: "Homework not assigned to your class" 
         });
@@ -256,6 +376,13 @@ exports.submitHomework = async (req, res) => {
 
       // Check due date
       if (new Date() > homework.dueDate) {
+        // Clean up uploaded file if it exists
+        if (req.file) {
+          fs.unlink(req.file.path, (err) => {
+            if (err) console.error('Error deleting unused file:', err);
+          });
+        }
+        
         return res.status(400).json({ 
           message: "Homework submission is past due date" 
         });
@@ -268,15 +395,9 @@ exports.submitHomework = async (req, res) => {
         });
       }
 
-      // Remove previous submission if exists
-      homework.submissions = homework.submissions.filter(
-        (submission) => submission.student.toString() !== req.user.id
-      );
-
       // Add new submission
       homework.submissions.push({
         student: req.user.id,
-        // pdfUrl: req.file.path,
         pdfUrl: req.file.path.replace(/\\/g, '/'),
         submittedAt: new Date()
       });
@@ -293,6 +414,13 @@ exports.submitHomework = async (req, res) => {
       });
 
     } catch (err) {
+      // Clean up uploaded file if it exists in case of error
+      if (req.file) {
+        fs.unlink(req.file.path, (err) => {
+          if (err) console.error('Error deleting unused file:', err);
+        });
+      }
+
       console.error("Homework Submission Error:", err);
       res.status(500).json({ 
         message: "Server Error", 
@@ -301,7 +429,6 @@ exports.submitHomework = async (req, res) => {
     }
   });
 };
-
 
 
 
