@@ -24,7 +24,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 .catch((err) => console.error('MongoDB Connection Error:', err));
 
 
-
+app.use('/uploads', express.static('uploads'));
 
 // Import Routes
 const authRoutes = require('./routes/auth');
