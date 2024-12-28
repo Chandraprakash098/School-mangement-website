@@ -123,4 +123,15 @@ router.post(
   studentController.requestBookIssue
 );
 
+router.get(
+  "/sports-events",
+  [auth, roleAuth(["student"])],
+  studentController.getStudentSportsEvents
+);
+router.post(
+  "/sports-events/:eventId/register",
+  [auth, roleAuth(["student"])],
+  studentController.registerForSportsEvent
+);
+
 module.exports = router;

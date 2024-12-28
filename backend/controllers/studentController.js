@@ -8,6 +8,7 @@ const StudyMaterial = require("../models/StudyMaterial");
 const Remarks = require("../models/Remarks");
 const Transport = require("../models/Transport");
 const Fees = require("../models/Account");
+const SportsEvent = require("../models/SportsEvent")
 const multer = require("multer");
 const path = require("path");
 const fs= require('fs')
@@ -812,3 +813,239 @@ exports.requestBookIssue = async (req, res) => {
 };
 
 
+
+// for sports
+
+
+// // Get sports events for student
+// exports.getStudentSportsEvents = async (req, res) => {
+//   try {
+//     const student = await User.findById(req.user.id);
+
+//     if (!student) {
+//       return res.status(404).json({ message: 'Student not found' });
+//     }
+
+//     console.log('User ID from Token:', req.user.id);
+//     console.log('Student Class:', student.class);
+
+//     // Query to fetch all upcoming sports events without class eligibility check
+//     const events = await SportsEvent.find({
+//       eventDate: { $gte: new Date() } // Only upcoming events
+//     })
+//       .populate('coach', 'name email')
+//       .sort({ eventDate: 1 });
+
+//     console.log('Matched Events:', events);
+
+//     const eventsWithStatus = events.map((event) => {
+//       const isRegistered = event.registeredStudents.some(
+//         (registration) => registration.student.toString() === req.user.id
+//       );
+
+//       return {
+//         ...event.toObject(),
+//         isRegistered,
+//         canRegister: event.maxParticipants > event.registeredStudents.length
+//       };
+//     });
+
+//     res.json(eventsWithStatus); // Send all events with registration status
+//   } catch (err) {
+//     console.error('Error fetching student sports events:', err);
+//     res.status(500).json({ message: 'Server Error' });
+//   }
+// };
+
+
+
+
+// // Register for sports event
+// exports.registerForSportsEvent = async (req, res) => {
+//   try {
+//     const { eventId } = req.params;
+
+//     // Check if eventId is valid
+//     if (!eventId || !eventId.match(/^[0-9a-fA-F]{24}$/)) {
+//       return res.status(400).json({ message: 'Invalid event ID format' });
+//     }
+
+//     // Find the event by ID
+//     const event = await SportsEvent.findById(eventId);
+//     if (!event) {
+//       return res.status(404).json({ message: 'Sports event not found' });
+//     }
+
+//     // Check if the registration deadline has passed
+//     if (event.registrationDeadline && new Date() > event.registrationDeadline) {
+//       return res.status(400).json({
+//         message: 'Registration deadline has passed',
+//         registrationDeadline: event.registrationDeadline,
+//       });
+//     }
+
+//     // Check if maximum participants have been reached
+//     if (event.maxParticipants && event.registeredStudents.length >= event.maxParticipants) {
+//       return res.status(400).json({
+//         message: 'Event has reached maximum participants',
+//         maxParticipants: event.maxParticipants,
+//       });
+//     }
+
+//     // Check if the student is already registered
+//     const alreadyRegistered = event.registeredStudents.some(
+//       (registration) => registration.student.toString() === req.user.id
+//     );
+//     if (alreadyRegistered) {
+//       return res.status(400).json({ message: 'Already registered for this event' });
+//     }
+
+//     // Add the student to the registeredStudents list
+//     event.registeredStudents.push({
+//       student: req.user.id,
+//       registrationDate: new Date(),
+//     });
+
+//     // Save the updated event
+//     await event.save();
+
+//     res.json({ message: 'Successfully registered for event', event });
+//   } catch (err) {
+//     console.error('Error registering for sports event:', err);
+
+//     // Check for validation errors
+//     if (err.name === 'ValidationError') {
+//       return res.status(400).json({ message: 'Validation Error', error: err.message });
+//     }
+
+//     // Handle other errors
+//     res.status(500).json({ message: 'Server Error', error: err.message });
+//   }
+// };
+
+
+
+// Get sports events for student
+exports.getStudentSportsEvents = async (req, res) => {
+  try {
+    const student = await User.findById(req.user.id);
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    console.log('User ID from Token:', req.user.id);
+    console.log('Student Class:', student.class);
+
+    // Query to fetch only eligible upcoming sports events
+    const events = await SportsEvent.find({
+      eventDate: { $gte: new Date() }, // Only upcoming events
+      eligibleClasses: student.class // Only events where student's class is in eligibleClasses array
+    })
+      .populate('coach', 'name email')
+      .sort({ eventDate: 1 });
+
+    console.log('Matched Events:', events);
+
+    const eventsWithStatus = events.map((event) => {
+      const isRegistered = event.registeredStudents.some(
+        (registration) => registration.student.toString() === req.user.id
+      );
+
+      return {
+        ...event.toObject(),
+        isRegistered,
+        canRegister: event.maxParticipants > event.registeredStudents.length,
+        isEligible: true // Since we're already filtering by eligibleClasses, these events are all eligible
+      };
+    });
+
+    res.json(eventsWithStatus);
+  } catch (err) {
+    console.error('Error fetching student sports events:', err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// Register for sports event
+exports.registerForSportsEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    // Check if eventId is valid
+    if (!eventId || !eventId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: 'Invalid event ID format' });
+    }
+
+    // Find the student
+    const student = await User.findById(req.user.id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Find the event by ID
+    const event = await SportsEvent.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: 'Sports event not found' });
+    }
+
+    // Check if student's class is eligible
+    if (!event.eligibleClasses.includes(student.class)) {
+      return res.status(403).json({ 
+        message: 'Not eligible for this event',
+        studentClass: student.class,
+        eligibleClasses: event.eligibleClasses
+      });
+    }
+
+    // Check if the registration deadline has passed
+    if (event.registrationDeadline && new Date() > event.registrationDeadline) {
+      return res.status(400).json({
+        message: 'Registration deadline has passed',
+        registrationDeadline: event.registrationDeadline,
+      });
+    }
+
+    // Check if maximum participants have been reached
+    if (event.maxParticipants && event.registeredStudents.length >= event.maxParticipants) {
+      return res.status(400).json({
+        message: 'Event has reached maximum participants',
+        maxParticipants: event.maxParticipants,
+        currentParticipants: event.registeredStudents.length
+      });
+    }
+
+    // Check if the student is already registered
+    const alreadyRegistered = event.registeredStudents.some(
+      (registration) => registration.student.toString() === req.user.id
+    );
+    if (alreadyRegistered) {
+      return res.status(400).json({ message: 'Already registered for this event' });
+    }
+
+    // Add the student to the registeredStudents list
+    event.registeredStudents.push({
+      student: req.user.id,
+      registrationDate: new Date(),
+    });
+
+    // Save the updated event
+    await event.save();
+
+    res.json({ 
+      message: 'Successfully registered for event', 
+      event,
+      studentClass: student.class
+    });
+  } catch (err) {
+    console.error('Error registering for sports event:', err);
+
+    // Check for validation errors
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ message: 'Validation Error', error: err.message });
+    }
+
+    // Handle other errors
+    res.status(500).json({ message: 'Server Error', error: err.message });
+  }
+};

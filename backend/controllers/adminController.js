@@ -5,6 +5,7 @@ const  Syllabus = require('../models/Syllabus');
 const StudyMaterial = require('../models/StudyMaterial')
 const User = require('../models/User');
 const LecturePeriod= require('../models/LecturePeriod')
+const SportsEvent = require('../models/SportsEvent');
 
 // Add Book to Library
 exports.addBook = async (req, res) => {
@@ -424,6 +425,169 @@ exports.deleteLecturePeriod = async (req, res) => {
     res.json({ message: 'Lecture period deleted successfully' });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+
+
+
+//for sports
+
+// Create new sports event
+exports.createSportsEvent = async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      eventDate,
+      eventType,
+      sportName,
+      venue,
+      eligibleClasses,
+      registrationDeadline,
+      maxParticipants,
+      coach
+    } = req.body;
+
+    const sportsEvent = new SportsEvent({
+      title,
+      description,
+      eventDate,
+      eventType,
+      sportName,
+      venue,
+      eligibleClasses,
+      registrationDeadline,
+      maxParticipants,
+      coach,
+      createdBy: req.user.id
+    });
+
+    await sportsEvent.save();
+    res.status(201).json(sportsEvent);
+  } catch (err) {
+    console.error('Error creating sports event:', err);
+    res.status(500).json({ message: 'Server Error', error: err.message });
+  }
+};
+
+// Update sports event
+exports.updateSportsEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const updateData = req.body;
+    
+    updateData.updatedAt = Date.now();
+    
+    const event = await SportsEvent.findByIdAndUpdate(
+      eventId,
+      updateData,
+      { new: true }
+    ).populate('coach', 'name email');
+    
+    if (!event) {
+      return res.status(404).json({ message: 'Sports event not found' });
+    }
+    
+    res.json(event);
+  } catch (err) {
+    console.error('Error updating sports event:', err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// Delete sports event
+exports.deleteSportsEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    
+    const event = await SportsEvent.findByIdAndDelete(eventId);
+    
+    if (!event) {
+      return res.status(404).json({ message: 'Sports event not found' });
+    }
+    
+    res.json({ message: 'Sports event deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting sports event:', err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// Get all sports events (admin view)
+exports.getAllSportsEvents = async (req, res) => {
+  try {
+    const events = await SportsEvent.find()
+      .populate('coach', 'name email')
+      .populate('createdBy', 'name')
+      .sort({ eventDate: 1 });
+    
+    res.json(events);
+  } catch (err) {
+    console.error('Error fetching sports events:', err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+
+exports.getEventRegistrations = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    const event = await SportsEvent.findById(eventId)
+      .populate({
+        path: 'registeredStudents.student',
+        select: 'name email class' // Add any other student fields you want to show
+      });
+
+    if (!event) {
+      return res.status(404).json({ message: 'Sports event not found' });
+    }
+
+    // Format the response to include relevant information
+    const registrations = event.registeredStudents.map(registration => ({
+      student: {
+        id: registration.student._id,
+        name: registration.student.name,
+        email: registration.student.email,
+        class: registration.student.class
+      },
+      registrationDate: registration.registrationDate
+    }));
+
+    res.json({
+      eventTitle: event.title,
+      eventDate: event.eventDate,
+      totalRegistrations: registrations.length,
+      maxParticipants: event.maxParticipants,
+      registrations
+    });
+
+  } catch (err) {
+    console.error('Error fetching event registrations:', err);
+    res.status(500).json({ message: 'Server Error', error: err.message });
+  }
+};
+
+// Update getAllSportsEvents to include registration count
+exports.getAllSportsEvents = async (req, res) => {
+  try {
+    const events = await SportsEvent.find()
+      .populate('coach', 'name email')
+      .populate('createdBy', 'name')
+      .sort({ eventDate: 1 });
+    
+    // Add registration count to each event
+    const eventsWithRegistrationCount = events.map(event => ({
+      ...event.toObject(),
+      registrationCount: event.registeredStudents.length,
+      spotsAvailable: event.maxParticipants - event.registeredStudents.length
+    }));
+    
+    res.json(eventsWithRegistrationCount);
+  } catch (err) {
+    console.error('Error fetching sports events:', err);
     res.status(500).json({ message: 'Server Error' });
   }
 };
