@@ -4,6 +4,7 @@ const auth = require("../middleware/auth");
 const roleAuth = require("../middleware/roleAuth");
 const studentController = require("../controllers/studentController");
 const transportController = require("../controllers/transportController");
+const { getMyNotifications, markAsRead } = require('../controllers/notificationController');
 
 router.get(
   "/attendance/:userId",
@@ -133,5 +134,9 @@ router.post(
   [auth, roleAuth(["student"])],
   studentController.registerForSportsEvent
 );
+
+router.get('/notifications', auth, getMyNotifications);
+router.post('/notifications/:type/:relatedId/read', auth, markAsRead);
+router.get('/notification-counts', auth, studentController.getNotificationCounts);
 
 module.exports = router;

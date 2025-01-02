@@ -8,7 +8,7 @@ const moment = require('moment');
 const multer = require('multer');
 const path = require('path');
 const LecturePeriod = require('../models/LecturePeriod')
-
+const { createNotification } = require('./notificationController');
 
 
 
@@ -270,6 +270,20 @@ exports.createHomework = async (req, res) => {
 
       await homework.save();
 
+      const students = await User.find({ 
+        role: 'student', 
+        class: studentClass 
+      }).select('_id');
+     
+
+      await createNotification(
+        students.map(student => student._id),
+        'New Homework Assigned',
+        `New homework assigned for ${subject}: ${title}`,
+        'homework',
+        homework._id
+      );
+
       
       res.status(201).json({
         message: "Homework assigned successfully",
@@ -435,6 +449,15 @@ exports.createRemarks = async (req, res) => {
         behaviorRemark,
         overallComment
       });
+
+      // Create notification for each student
+      await createNotification(
+        [studentId], // Array with single student ID
+        'New Remarks Added',
+        `New remarks added for ${subject}`,
+        'remarks',
+        remarks._id
+      );
 
       return remarks.save();
     });

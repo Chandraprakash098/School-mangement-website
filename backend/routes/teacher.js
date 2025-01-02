@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 const roleAuth = require('../middleware/roleAuth');
 const teacherController = require('../controllers/teacherController');
 const { check } = require('express-validator');
-
+const { getMyNotifications, markAsRead } = require('../controllers/notificationController');
 
 
 
@@ -130,5 +130,8 @@ router.get('/my-lecture-periods',
   [auth, roleAuth(['teacher'])],
   teacherController.getMyLecturePeriods
 );
+
+router.get('/notifications', auth, getMyNotifications);
+router.post('/notifications/:type/:relatedId/read', auth, markAsRead);
 
 module.exports = router;

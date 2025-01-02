@@ -34,6 +34,7 @@ const teacherRoutes = require('./routes/teacher');
 const transportRoutes = require('./routes/transport');
 const accountRoutes = require('./routes/account');
 const librarianRoutes = require('./routes/librarianRoutes')
+const notificationRoutes = require('./routes/notifications')
 
 
 
@@ -45,6 +46,7 @@ app.use('/api/teacher', teacherRoutes);
 app.use('/api/transport', transportRoutes);
 app.use('/api/account', accountRoutes);
 app.use('/api/librarian', librarianRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 
 

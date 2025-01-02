@@ -12,6 +12,7 @@ const SportsEvent = require("../models/SportsEvent")
 const multer = require("multer");
 const path = require("path");
 const fs= require('fs')
+const Notification = require('../models/Notification')
 
 
 exports.getAttendance = async (req, res) => {
@@ -24,6 +25,15 @@ exports.getAttendance = async (req, res) => {
         message: "Year, month, and subject are required",
       });
     }
+
+    await Notification.updateMany(
+      {
+        recipient: req.user.id,
+        type: 'attendance',
+        read: false
+      },
+      { read: true }
+    );
 
     // Find attendance records matching criteria
     const attendance = await Attendance.find({
@@ -105,6 +115,16 @@ exports.getHomework = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+
+    // Mark homework notifications as read
+    await Notification.updateMany(
+      {
+        recipient: req.user.id,
+        type: 'homework',
+        read: false
+      },
+      { read: true }
+    );
 
     // Add .populate('teacher', 'name email') to populate teacher details
     const homework = await Homework.find({
@@ -379,6 +399,16 @@ exports.issueBook = async (req, res) => {
 
 exports.getSyllabus = async (req, res) => {
   try {
+
+    await Notification.updateMany(
+      {
+        recipient: req.user.id,
+        type: 'syllabus',
+        read: false
+      },
+      { read: true }
+    );
+
     const syllabus = await Syllabus.find()
       .sort({ createdAt: -1 })
       .populate('uploadedBy', 'name');
@@ -443,6 +473,16 @@ exports.downloadSyllabus = async (req, res) => {
 // Get Student Remarks
 exports.getRemarks = async (req, res) => {
   try {
+
+    await Notification.updateMany(
+      {
+        recipient: req.user.id,
+        type: 'remarks',
+        read: false
+      },
+      { read: true }
+    );
+
     const remarks = await Remarks.find({ student: req.user.id }).sort({
       createdAt: -1,
     });
@@ -982,10 +1022,39 @@ exports.registerForSportsEvent = async (req, res) => {
 };
 
 
+exports.getNotificationCounts = async (req, res) => {
+  try {
+    const counts = await Notification.aggregate([
+      {
+        $match: {
+          recipient: new mongoose.Types.ObjectId(req.user.id),
+          read: false
+        }
+      },
+      {
+        $group: {
+          _id: '$type',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
 
-// Prepare the profile response
-    // const profileResponse = {
-    //   name: user.name,
-    //   email: user.email,
-    //   Profession: user.role,
-    // };
+    const formattedCounts = {
+      homework: 0,
+      attendance: 0,
+      syllabus: 0,
+      remarks: 0
+    };
+
+    counts.forEach(item => {
+      formattedCounts[item._id] = item.count;
+    });
+
+    res.json(formattedCounts);
+  } catch (err) {
+    console.error("Error getting notification counts:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+

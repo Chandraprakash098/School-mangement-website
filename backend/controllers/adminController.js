@@ -6,6 +6,7 @@ const StudyMaterial = require('../models/StudyMaterial')
 const User = require('../models/User');
 const LecturePeriod= require('../models/LecturePeriod')
 const SportsEvent = require('../models/SportsEvent');
+const { createNotification } = require('./notificationController');
 
 // Add Book to Library
 exports.addBook = async (req, res) => {
@@ -346,6 +347,15 @@ exports.assignLecturePeriod = async (req, res) => {
     console.log("Lecture Period to Save:", lecturePeriod);
 
     await lecturePeriod.save();
+
+    await createNotification(
+      [teacherId],
+      'New Lecture Period Assigned',
+      `You have been assigned a new lecture period for ${subject} on ${dayOfWeek}`,
+      'lecture',
+      lecturePeriod._id
+    );
+
     res.status(201).json(lecturePeriod);
   } catch (err) {
     console.error("Error in assignLecturePeriod:", err);
