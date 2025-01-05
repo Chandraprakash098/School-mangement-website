@@ -119,4 +119,16 @@ router.post('/login', [
   }
 });
 
+//For Logout
+
+router.post('/logout', (req, res) => {
+  try {
+    // Client-side should remove the token. This is just for confirmation.
+    res.status(200).json({ message: 'Logout successful' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
 module.exports = router;
